@@ -17,6 +17,7 @@ import PaymentMethod from './src/screens/PaymentMethod';
 import BlockchainMethod from './src/screens/BlockchainMethod'; // NEW
 import CardMethod from './src/screens/CardMethod'; // NEW
 import GCashMethod from './src/screens/GCashMethod'; // NEW
+import TokenSelection from './src/screens/TokenSelection';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -27,6 +28,7 @@ type RootStackParamList = {
   BlockchainMethod: undefined; // NEW
   CardMethod: undefined; // NEW
   GCashMethod: undefined; // NEW
+  TokenSelection: undefined; // NEW
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -60,6 +62,7 @@ function App(): React.JSX.Element {
           <Stack.Navigator initialRouteName="PaymentMethod" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
             <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
+            <Stack.Screen name="TokenSelection" component={TokenSelection} />
             <Stack.Screen name="CardMethod" component={CardMethod} />
             <Stack.Screen name="GCashMethod" component={GCashMethod} />
             <Stack.Screen name="Login" component={Login} />

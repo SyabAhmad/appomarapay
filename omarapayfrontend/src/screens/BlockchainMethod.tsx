@@ -53,7 +53,8 @@ const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity
                 key={c.id}
                 style={[styles.chainCard, selected ? styles.chainCardSelected : null]}
-                onPress={() => setSelectedChain(c.id)}
+                // open TokenSelection for the tapped chain
+                onPress={() => navigation.navigate('TokenSelection' as never, { chainId: c.id } as never)}
                 activeOpacity={0.9}
               >
                 <Text style={styles.chainEmoji}>{c.emoji}</Text>
