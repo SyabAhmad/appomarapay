@@ -2,7 +2,12 @@ import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-type RootStackParamList = { CardMethod: undefined; PaymentMethod: undefined };
+type RootStackParamList = {
+  CardMethod: undefined;
+  CardNetworkSelection: undefined;
+  CardDetails: { networkId: string; networkName: string } | undefined;
+  PaymentMethod: undefined;
+};
 type Props = NativeStackScreenProps<RootStackParamList, 'CardMethod'>;
 
 const CardMethod: React.FC<Props> = ({ navigation }) => {
@@ -10,7 +15,9 @@ const CardMethod: React.FC<Props> = ({ navigation }) => {
     <View style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.back}>← Back</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.back}>← Back</Text>
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Card Payment</Text>
           <View style={{ width: 60 }} />
         </View>
@@ -20,7 +27,11 @@ const CardMethod: React.FC<Props> = ({ navigation }) => {
         <View style={styles.card}>
           <Text style={styles.emoji}>💳</Text>
           <Text style={styles.title}>Card payments</Text>
-          <Text style={styles.sub}>Coming soon</Text>
+          <Text style={styles.sub}>Pay with a supported card network</Text>
+
+          <TouchableOpacity style={styles.chooseBtn} onPress={() => navigation.navigate('CardNetworkSelection' as never)}>
+            <Text style={styles.chooseBtnText}>Choose card network</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -47,7 +58,16 @@ const styles = StyleSheet.create({
   },
   emoji: { fontSize: 30, marginBottom: 8 },
   title: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  sub: { marginTop: 4, color: '#6b7280' },
+  sub: { marginTop: 6, color: '#6b7280', textAlign: 'center', paddingHorizontal: 20 },
+
+  chooseBtn: {
+    marginTop: 18,
+    backgroundColor: '#2563eb',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  chooseBtnText: { color: '#fff', fontWeight: '800' },
 });
 
 export default CardMethod;

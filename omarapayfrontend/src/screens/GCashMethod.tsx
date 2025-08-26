@@ -1,22 +1,55 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-const GCashMethod: React.FC = ({ navigation }: any) => {
+type RootStackParamList = {
+  GCashMethod: undefined;
+  GCashDetails: { walletId: string; walletName: string } | undefined;
+  Login: undefined;
+};
+type Props = NativeStackScreenProps<RootStackParamList, 'GCashMethod'>;
+
+const wallets = [
+  { id: 'gcash', name: 'GCash', emoji: '📱' },
+  { id: 'gpay', name: 'Google Pay', emoji: '🅖' },
+  { id: 'paypal', name: 'PayPal', emoji: '💸' },
+  { id: 'other', name: 'Other Wallet', emoji: '🔗' },
+];
+
+const GCashMethod: React.FC<Props> = ({ navigation }) => {
+  const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
+
   return (
     <View style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.back}>← Back</Text></TouchableOpacity>
-          <Text style={styles.headerTitle}>GCash Payment</Text>
-          <View style={{ width: 60 }} />
+        <View style={styles.topRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.back}>{'< Back'}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.topTitle}>Choose Wallet</Text>
+
+          <TouchableOpacity style={styles.outlineBtn} onPress={onLogout}>
+            <Text style={styles.outlineBtnText}>Logout</Text>
+          </TouchableOpacity>
         </View>
 
         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
 
-        <View style={styles.card}>
-          <Text style={styles.emoji}>📱</Text>
-          <Text style={styles.title}>GCash</Text>
-          <Text style={styles.sub}>Wallet checkout coming soon</Text>
+        <Text style={styles.sectionSubtitle}>Select the wallet to receive payment</Text>
+
+        <View style={styles.grid}>
+          {wallets.map((w) => (
+            <TouchableOpacity
+              key={w.id}
+              style={styles.walletCard}
+              onPress={() => navigation.navigate('GCashDetails' as never, { walletId: w.id, walletName: w.name } as never)}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.walletEmoji}>{w.emoji}</Text>
+              <Text style={styles.walletName}>{w.name}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -25,15 +58,19 @@ const GCashMethod: React.FC = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
-  container: { paddingTop: 26, paddingBottom: 40, paddingHorizontal: 16, alignItems: 'center' },
-  headerBar: { width: '100%', maxWidth: 560, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  container: { paddingTop: 28, paddingBottom: 40, paddingHorizontal: 16, alignItems: 'center' },
+  topRow: { width: '100%', maxWidth: 560, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   back: { color: '#2563eb', fontWeight: '800' },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
-  logo: { width: 140, height: 50, marginVertical: 10 },
-  card: { width: '100%', maxWidth: 560, alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', paddingVertical: 24, marginTop: 16 },
-  emoji: { fontSize: 30, marginBottom: 8 },
-  title: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  sub: { marginTop: 4, color: '#6b7280' },
+  outlineBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
+  outlineBtnText: { color: '#111827', fontWeight: '700' },
+  topTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  logo: { width: 150, height: 54, marginTop: 6, marginBottom: 12 },
+  sectionSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 12 },
+  grid: { width: '100%', maxWidth: 560, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
+  walletCard: { width: '48%', minHeight: 90, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 12, marginTop: 8 },
+  walletCardSelected: { backgroundColor: '#eef6ff', borderColor: '#2563eb' },
+  walletEmoji: { fontSize: 28, marginBottom: 6 },
+  walletName: { fontSize: 15, fontWeight: '700', color: '#111827', textAlign: 'center' },
 });
 
 export default GCashMethod;

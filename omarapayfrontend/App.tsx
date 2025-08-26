@@ -17,8 +17,11 @@ import PaymentMethod from './src/screens/PaymentMethod';
 import BlockchainMethod from './src/screens/BlockchainMethod'; // NEW
 import CardMethod from './src/screens/CardMethod'; // NEW
 import GCashMethod from './src/screens/GCashMethod'; // NEW
+import GCashDetails from './src/screens/GCashDetails'; // NEW
 import TokenSelection from './src/screens/TokenSelection';
 import AmountEntry from './src/screens/AmountEntry';
+import CardNetworkSelection from './src/screens/CardNetworkSelection';
+import CardDetails from './src/screens/CardDetails';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -66,7 +69,10 @@ function App(): React.JSX.Element {
             <Stack.Screen name="TokenSelection" component={TokenSelection} />
             <Stack.Screen name="AmountEntry" component={AmountEntry} />
             <Stack.Screen name="CardMethod" component={CardMethod} />
+            <Stack.Screen name="CardNetworkSelection" component={CardNetworkSelection} />
+            <Stack.Screen name="CardDetails" component={CardDetails} />
             <Stack.Screen name="GCashMethod" component={GCashMethod} />
+            <Stack.Screen name="GCashDetails" component={GCashDetails} />
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Signup" component={Signup} />
             <Stack.Screen name="Home" component={Home} />
