@@ -2,27 +2,39 @@ import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-type RootStackParamList = { PaymentMethod: undefined; Login: undefined; BlockchainMethod: undefined; CardMethod: undefined };
+type RootStackParamList = {
+  PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash' } | undefined;
+  Login: undefined;
+  BlockchainMethod: undefined;
+  CardMethod: undefined;
+  GCashMethod: undefined;
+};
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentMethod'>;
 
-const Panel: React.FC<{ emoji: string; title: string; subtitle: string; onPress: () => void }> = ({
-  emoji,
-  title,
-  subtitle,
-  onPress,
-}) => (
-  <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+const Panel: React.FC<{
+  emoji: string;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  selected?: boolean;
+}> = ({ emoji, title, subtitle, onPress, selected }) => (
+  <TouchableOpacity
+    style={[styles.card, selected ? styles.cardSelected : null]}
+    onPress={onPress}
+    activeOpacity={0.9}
+  >
     <Text style={styles.cardEmoji}>{emoji}</Text>
     <Text style={styles.cardTitle}>{title}</Text>
     <Text style={styles.cardSubtitle}>{subtitle}</Text>
-    <View style={styles.cardCta}>
-      <Text style={styles.cardCtaText}>Select</Text>
+    <View style={[styles.cardCta, selected ? styles.cardCtaSelected : null]}>
+      <Text style={styles.cardCtaText}>{selected ? 'Selected' : 'Select'}</Text>
     </View>
   </TouchableOpacity>
 );
 
-const PaymentMethod: React.FC<Props> = ({ navigation }) => {
+const PaymentMethod: React.FC<Props> = ({ navigation, route }) => {
   const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
+  const selected = route?.params?.selectedMethod;
 
   return (
     <View style={styles.safe}>
@@ -32,7 +44,6 @@ const PaymentMethod: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity style={styles.outlineBtn} onPress={onLogout}>
             <Text style={styles.outlineBtnText}>Logout</Text>
           </TouchableOpacity>
-          <View style={{ width: 88 }} />
         </View>
 
         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
@@ -44,18 +55,21 @@ const PaymentMethod: React.FC<Props> = ({ navigation }) => {
             emoji="💳"
             title="Card"
             subtitle="Pay with debit/credit card"
+            selected={selected === 'Card'}
             onPress={() => navigation.navigate('CardMethod' as never)}
           />
           <Panel
             emoji="🪙"
             title="Blockchain"
             subtitle="Pay using cryptocurrency"
+            selected={selected === 'Blockchain'}
             onPress={() => navigation.navigate('BlockchainMethod' as never)}
           />
           <Panel
-            emoji="G"
-            title="GWallets"
-            subtitle="Pay using Google Wallet"
+            emoji="📱"
+            title="GCash"
+            subtitle="Pay with GCash wallet"
+            selected={selected === 'GCash'}
             onPress={() => navigation.navigate('GCashMethod' as never)}
           />
         </View>
@@ -82,7 +96,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     backgroundColor: '#fff',
-    width: 88,
     alignItems: 'center',
   },
   outlineBtnText: { color: '#111827', fontWeight: '700' },
@@ -93,15 +106,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: '100%',
     maxWidth: 560,
-    flexDirection: 'column',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems:'center',
     gap: 12,
   },
   card: {
-    flexGrow: 1,
-    minWidth: 240,
     backgroundColor: '#fff',
     borderRadius: 14,
     borderWidth: 1,
@@ -114,10 +121,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
   },
+  cardSelected: {
+    backgroundColor: '#eef6ff',
+    borderColor: '#2563eb',
+  },
   cardEmoji: { fontSize: 28, marginBottom: 8 },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
   cardSubtitle: { marginTop: 4, color: '#6b7280', textAlign: 'center' },
   cardCta: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#2563eb', borderRadius: 999 },
+  cardCtaSelected: {
+    backgroundColor: '#0f172a',
+  },
   cardCtaText: { color: '#fff', fontWeight: '700' },
 });
 
