@@ -10,8 +10,8 @@ const AuthGate: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     const run = async () => {
       try {
-        const user = await AsyncStorage.getItem('auth_user');
-        if (user) navigation.reset({ index: 0, routes: [{ name: 'Home' as never }] });
+        const token = await AsyncStorage.getItem('auth_token');
+        if (token) navigation.reset({ index: 0, routes: [{ name: 'Home' as never }] });
         else navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
       } catch {
         navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });

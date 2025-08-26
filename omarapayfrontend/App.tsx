@@ -69,7 +69,11 @@ function App(): React.JSX.Element {
       <ErrorBoundary>
         <NavigationContainer>
           <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-          <Stack.Navigator initialRouteName="PaymentMethod" screenOptions={{ headerShown: false }}>
+          <Stack.Navigator initialRouteName="AuthGate" screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="AuthGate" component={AuthGate} />
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Signup" component={Signup} />
+            <Stack.Screen name="Home" component={Home} />
             <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
             <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
             <Stack.Screen name="TokenSelection" component={TokenSelection} />
@@ -85,11 +89,6 @@ function App(): React.JSX.Element {
             <Stack.Screen name="CardDetails" component={CardDetails} />
             <Stack.Screen name="GCashMethod" component={GCashMethod} />
             <Stack.Screen name="GCashDetails" component={GCashDetails} />
-            <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="Signup" component={Signup} />
-            <Stack.Screen name="Home" component={Home} />
-            <Stack.Screen name="AuthGate" component={AuthGate} />
-            
           </Stack.Navigator>
         </NavigationContainer>
       </ErrorBoundary>

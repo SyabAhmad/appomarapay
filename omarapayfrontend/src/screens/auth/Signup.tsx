@@ -3,7 +3,6 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 type RootStackParamList = { Signup: undefined; Login: undefined; Home: undefined };
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
@@ -22,17 +23,54 @@ const Signup: React.FC<Props> = ({ navigation }) => {
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // use emulator host for Android; change to your PC IP for a physical device
+  const API_BASE =
+    Platform.OS === 'android'
+      // ? 'http://10.0.2.2:5000'
+      ? 'http://192.168.0.109:5000'
+      : 'http://localhost:5000';
+
   const onCreate = async () => {
     if (!email || !pass) {
       Alert.alert('Error', 'Please fill Email and Password');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      console.info('Signup: sending request to', `${API_BASE}/api/users/register`);
+      // add timeout so UI doesn't hang indefinitely
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s
+      const res = await fetch(`${API_BASE}/api/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password: pass }),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
+
+      let body;
+      try { body = await res.json(); } catch (e) { body = null; }
+      console.info('Signup: response status', res.status, 'body', body);
+      if (!res.ok) {
+        Alert.alert('Error', body?.message || `Registration failed (status ${res.status})`);
+        setLoading(false);
+        return;
+      }
+      const { token, user } = body;
+      await AsyncStorage.setItem('auth_token', token);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(user));
+      // go to payment flow after successful registration
+      navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      if (err.name === 'AbortError') {
+        Alert.alert('Error', 'Request timed out. Is the backend running?');
+      } else {
+        Alert.alert('Error', err?.message ?? 'Network or server error');
+      }
+    } finally {
       setLoading(false);
-      Alert.alert('Success', 'Account created (frontend only).');
-      navigation.replace('Home' as never);
-    }, 600);
+    }
   };
 
   return (

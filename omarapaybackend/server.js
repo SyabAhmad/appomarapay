@@ -22,4 +22,7 @@ app.use('/api/users', userRoutes);
 // });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// make server listen on 0.0.0.0 so devices (phone) can connect to host machine
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});

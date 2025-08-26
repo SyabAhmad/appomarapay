@@ -3,7 +3,6 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = { Login: undefined; Signup: undefined; Home: undefined };
@@ -22,6 +22,13 @@ const Login: React.FC<Props> = ({ navigation }) => {
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // use emulator host for Android; if testing on a real device set to your machine IP (e.g. http://192.168.1.10:5000)
+  const API_BASE =
+    Platform.OS === 'android'
+      // ? 'http://10.0.2.2:5000'
+      ? 'http://192.168.0.109:5000'
+      : 'http://localhost:5000';
+
   const onLogin = async () => {
     if (!email || !pass) {
       Alert.alert('Error', 'Enter email and password');
@@ -29,9 +36,24 @@ const Login: React.FC<Props> = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      // Frontend-only mock
-      await AsyncStorage.setItem('auth_user', JSON.stringify({ email }));
-      navigation.reset({ index: 0, routes: [{ name: 'Home' as never }] });
+      const res = await fetch(`${API_BASE}/api/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        Alert.alert('Login failed', body.message || 'Invalid credentials');
+        return;
+      }
+      const { token, user } = body;
+      await AsyncStorage.setItem('auth_token', token);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(user));
+      // go to payment flow after auth
+      navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
+    } catch (err: any) {
+      console.error('Login error:', err);
+      Alert.alert('Error', err?.message ?? 'Network error');
     } finally {
       setLoading(false);
     }
