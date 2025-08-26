@@ -95,16 +95,16 @@ const TokenSelection: React.FC<Props> = ({ navigation, route }) => {
       <View style={styles.confirmBar}>
         <Text style={styles.confirmText}>{selectedToken ? `Selected: ${selectedToken.toUpperCase()}` : 'No token selected'}</Text>
         <TouchableOpacity
-          style={[styles.confirmBtn, !selectedToken ? { opacity: 0.6 } : null]}
+          style={[styles.proceedBtn, !selectedToken ? { opacity: 0.6 } : null]}
           disabled={!selectedToken}
           onPress={() =>
             navigation.navigate(
-              'PaymentMethod',
-              { selectedMethod: 'Blockchain', selectedToken, chainId }
+              'AmountEntry' as never,
+              { chainId, chainName, tokenId: selectedToken, tokenSymbol: (TOKENS_BY_CHAIN[chainId] || []).find(t => t.id === selectedToken)?.symbol } as never
             )
           }
         >
-          <Text style={styles.confirmBtnText}>Confirm</Text>
+          <Text style={styles.proceedText}>Enter amount</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -197,13 +197,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmText: { color: '#111827', fontWeight: '700' },
-  confirmBtn: {
+  proceedBtn: {
     backgroundColor: '#2563eb',
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 10,
   },
-  confirmBtnText: { color: '#fff', fontWeight: '800' },
+  proceedText: { color: '#fff', fontWeight: '800' },
 });
 
 export default TokenSelection;

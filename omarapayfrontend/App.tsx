@@ -18,6 +18,7 @@ import BlockchainMethod from './src/screens/BlockchainMethod'; // NEW
 import CardMethod from './src/screens/CardMethod'; // NEW
 import GCashMethod from './src/screens/GCashMethod'; // NEW
 import TokenSelection from './src/screens/TokenSelection';
+import AmountEntry from './src/screens/AmountEntry';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -63,6 +64,7 @@ function App(): React.JSX.Element {
             <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
             <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
             <Stack.Screen name="TokenSelection" component={TokenSelection} />
+            <Stack.Screen name="AmountEntry" component={AmountEntry} />
             <Stack.Screen name="CardMethod" component={CardMethod} />
             <Stack.Screen name="GCashMethod" component={GCashMethod} />
             <Stack.Screen name="Login" component={Login} />

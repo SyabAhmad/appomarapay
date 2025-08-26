@@ -1,4 +1,3 @@
-import { API_URL } from '@env';
 import dayjs from 'dayjs';
 import { Dimensions } from 'react-native';
 
@@ -55,7 +54,8 @@ export const renderDateCard = (date: string): string => {
 };
 
 export const getMediaPath = (path: string | undefined) => {
-  return `${API_URL}${path}`;
+  // backend not implemented yet — return provided path or empty string
+  return path ?? '';
 };
 
 export const formatTimeToAMPM = (inputDate: string) => {
