@@ -40,7 +40,7 @@ const CardMethod: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
-  container: { paddingTop: 26, paddingBottom: 40, paddingHorizontal: 16, alignItems: 'center' },
+  container: { paddingTop: 26, paddingBottom: 70, paddingHorizontal: 16, alignItems: 'center' },
 
   headerBar: {
     width: '100%', maxWidth: 560, flexDirection: 'row', alignItems: 'center',
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%', maxWidth: 560, alignItems: 'center',
     backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb',
-    paddingVertical: 24, marginTop: 16,
+    paddingVertical: 24, marginTop: 56,
   },
   emoji: { fontSize: 30, marginBottom: 8 },
   title: { fontSize: 20, fontWeight: '800', color: '#111827' },

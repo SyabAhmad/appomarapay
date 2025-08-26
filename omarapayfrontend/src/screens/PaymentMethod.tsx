@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 44,
   },
   outlineBtn: {
     paddingVertical: 10,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   outlineBtnText: { color: '#111827', fontWeight: '700' },
   topTitle: { fontSize: 16, fontWeight: '800', color: '#111827', textAlign: 'center' },
   logo: { width: 150, height: 54, marginTop: 6, marginBottom: 18 },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
+  sectionTitle: { paddingVertical: 16, fontSize: 16, fontWeight: '800', color: '#0f172a', textAlign: 'center' },
   panels: {
     marginTop: 12,
     width: '100%',
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    paddingVertical: 18,
+    paddingVertical: 28,
     paddingHorizontal: 16,
     alignItems: 'center',
     elevation: 1,

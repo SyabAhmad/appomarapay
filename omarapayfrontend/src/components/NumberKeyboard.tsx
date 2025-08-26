@@ -11,9 +11,9 @@ const NumberKeyboard: React.FC<Props> = ({ value, onChange, maxLength = 12 }) =>
   const windowWidth = Dimensions.get('window').width;
   // match other screens' maxWidth (560) and padding used elsewhere
   const containerWidth = Math.min(windowWidth, 560) - 32; // 16px padding each side
-  const gap = 12;
+  const gap = 5;
   const buttonSize = Math.floor((containerWidth - gap * 2) / 3);
-  const fontSize = Math.round(buttonSize * 0.42);
+  const fontSize = Math.round(buttonSize * 0.22);
 
   const append = (char: string) => {
     if (value.length >= maxLength) return;

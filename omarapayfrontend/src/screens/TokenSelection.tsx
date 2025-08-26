@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
@@ -9,29 +9,36 @@ type RootStackParamList = {
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'TokenSelection'>;
 
-const TOKENS_BY_CHAIN: Record<string, Array<{ id: string; symbol: string; name: string; emoji?: string }>> = {
+const TOKENS_BY_CHAIN: Record<string, Array<{ id: string; symbol: string; name: string; logo?: any }>> = {
   ethereum: [
-    { id: 'eth', symbol: 'ETH', name: 'Ether', emoji: 'Ξ' },
-    { id: 'usdc', symbol: 'USDC', name: 'USD Coin', emoji: '$' },
-    { id: 'dai', symbol: 'DAI', name: 'Dai', emoji: '◈' },
-    { id: 'weth', symbol: 'WETH', name: 'Wrapped Ether', emoji: '⟲' },
-    { id: 'link', symbol: 'LINK', name: 'Chainlink', emoji: '🔗' },
-    { id: 'aave', symbol: 'AAVE', name: 'Aave', emoji: 'A' },
+    { id: 'eth', symbol: 'ETH', name: 'Ether', logo: require('../../assets/Etherum.png') },
+    { id: 'usdt', symbol: 'USDT', name: 'Tether', logo: require('../../assets/Tether.png') },
+    { id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../assets/USD Coin.png') },
+    { id: 'dai', symbol: 'DAI', name: 'Dai', logo: require('../../assets/Dai.png') },
+    { id: 'usdfx', symbol: 'USDFX', name: 'USDFX', logo: require('../../assets/Dai.png') },
+    // { id: 'weth', symbol: 'WETH', name: 'Wrapped Ether', logo: require('../../assets/Etherum.png') },
+    { id: 'link', symbol: 'LINK', name: 'Chainlink', logo: require('../../assets/Chainlink.png') },
+    // { id: 'matic', symbol: 'MATIC', name: 'Matic', logo: require('../../assets/Matic.png') },
+  ],
+  bnbsmart: [
+    { id: 'bnb', symbol: 'BNB', name: 'BNB', logo: require('../../assets/Bnb.png') },
+    { id: 'tether', symbol: 'Tether', name: 'Tether', logo: require('../../assets/Tether.png') },
+    { id: 'busd', symbol: 'BUSD', name: 'BUSD', logo: require('../../assets/Tether.png') },
   ],
   bitcoin: [
-    { id: 'btc', symbol: 'BTC', name: 'Bitcoin', emoji: '₿' },
-    { id: 'tbtc', symbol: 'tBTC', name: 'tBTC (wrapped)', emoji: 't' },
+    { id: 'btc', symbol: 'BTC', name: 'Bitcoin', logo: require('../../assets/Bitcoin.png') },
+    { id: 'tbtc', symbol: 'tBTC', name: 'tBTC (wrapped)', logo: require('../../assets/Bitcoin.png') },
   ],
   solana: [
-    { id: 'sol', symbol: 'SOL', name: 'Solana', emoji: '◎' },
-    { id: 'usdc_s', symbol: 'USDC', name: 'USDC', emoji: '$' },
+    { id: 'sol', symbol: 'SOL', name: 'Solana', logo: require('../../assets/logo.png') },
+    { id: 'usdc_s', symbol: 'USDC', name: 'USDC', logo: require('../../assets/USD Coin.png') },
   ],
   polygon: [
-    { id: 'matic', symbol: 'MATIC', name: 'Polygon', emoji: 'M' },
-    { id: 'usdc_p', symbol: 'USDC', name: 'USDC', emoji: '$' },
+    { id: 'matic', symbol: 'MATIC', name: 'Polygon', logo: require('../../assets/Matic.png') },
+    { id: 'usdc_p', symbol: 'USDC', name: 'USDC', logo: require('../../assets/USD Coin.png') },
   ],
-  avalanche: [{ id: 'avax', symbol: 'AVAX', name: 'Avalanche', emoji: 'A' }],
-  bsc: [{ id: 'bnb', symbol: 'BNB', name: 'BNB', emoji: '𐄷' }],
+  avalanche: [{ id: 'avax', symbol: 'AVAX', name: 'Avalanche', logo: require('../../assets/logo.png') }],
+  bsc: [{ id: 'bnb', symbol: 'BNB', name: 'BNB', logo: require('../../assets/Bnb.png') }],
   // extend as needed
 };
 
@@ -78,7 +85,7 @@ const TokenSelection: React.FC<Props> = ({ navigation, route }) => {
                 activeOpacity={0.9}
               >
                 <View style={[styles.tokenIcon, selected ? styles.tokenIconSelected : null]}>
-                  <Text style={{ fontWeight: '700' }}>{t.emoji ?? t.symbol[0]}</Text>
+                  {t.logo ? <Image source={t.logo} style={styles.tokenLogo} resizeMode="contain" /> : <Text style={{ fontWeight: '700' }}>{t.symbol[0]}</Text>}
                 </View>
                 <View style={{ alignItems: 'center' }}>
                   <Text style={styles.tokenSymbol}>{t.symbol}</Text>
@@ -113,18 +120,18 @@ const TokenSelection: React.FC<Props> = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
-  container: { paddingTop: 20, paddingBottom: 120, paddingHorizontal: 16, alignItems: 'center' },
+  container: { paddingTop: 40, paddingBottom: 120, paddingHorizontal: 16, alignItems: 'center' },
   topRow: {
     width: '100%',
     maxWidth: 560,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 56,
   },
   back: { color: '#2563eb', fontWeight: '800' },
   topTitle: { fontSize: 16, fontWeight: '800', color: '#111827', textAlign: 'center' },
-  helper: { color: '#6b7280', marginBottom: 8, textAlign: 'center' },
+  helper: { color: '#6b7280', marginBottom: 56, textAlign: 'center' },
   search: {
     width: '100%',
     maxWidth: 560,
@@ -134,7 +141,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e6eef8',
     backgroundColor: '#f8fafc',
-    marginBottom: 12,
+    marginBottom: 56,
     color: '#0f172a',
   },
   grid: {
@@ -169,6 +176,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tokenIconSelected: { backgroundColor: '#dbeafe' },
+  tokenLogo: { width: 36, height: 36, marginBottom: 8 },
   tokenSymbol: { fontWeight: '800', fontSize: 16, color: '#0f172a' },
   tokenName: { color: '#6b7280', marginTop: 4, textAlign: 'center' },
   check: {

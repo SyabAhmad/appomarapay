@@ -17,17 +17,20 @@ const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
   const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
   const [selectedChain, setSelectedChain] = useState<string | null>(null);
 
+  // use asset logos where available, fallback to app logo for missing images
   const chains = [
-    { id: 'ethereum', name: 'Ethereum', emoji: 'Ξ' },
-    { id: 'bitcoin', name: 'Bitcoin', emoji: '₿' },
-    { id: 'solana', name: 'Solana', emoji: '◎' },
-    { id: 'polygon', name: 'Polygon', emoji: 'M' },
-    { id: 'avalanche', name: 'Avalanche', emoji: 'A' },
-    { id: 'fantom', name: 'Fantom', emoji: 'F' },
-    { id: 'optimism', name: 'Optimism', emoji: 'O' },
-    { id: 'arbitrum', name: 'Arbitrum', emoji: 'a' },
-    { id: 'bsc', name: 'BNB Chain', emoji: '𐄷' },
-    { id: 'celo', name: 'Celo', emoji: 'C' },
+    { id: 'ethereum', name: 'Ethereum', logo: require('../../assets/Etherum.png') },
+    { id: 'bitcoin', name: 'Bitcoin', logo: require('../../assets/Bitcoin.png') },
+    { id: 'solana', name: 'Solana', logo: require('../../assets/logo.png') },
+    { id: 'polygon', name: 'Polygon', logo: require('../../assets/Polygon.png') },
+    { id: 'avalanche', name: 'Avalanche', logo: require('../../assets/logo.png') },
+    { id: 'fantom', name: 'Fantom', logo: require('../../assets/logo.png') },
+    { id: 'optimism', name: 'Optimism', logo: require('../../assets/logo.png') },
+    { id: 'arbitrum', name: 'Arbitrum', logo: require('../../assets/Arbitrum.png') },
+    { id: 'bsc', name: 'BNB Chain', logo: require('../../assets/Bnb.png') },
+    { id: 'near', name: 'NEAR', logo: require('../../assets/Near Protocol.png') },
+    { id: 'polkadot', name: 'Polkadot', logo: require('../../assets/Polkadot.png') },
+    { id: 'tron', name: 'Tron', logo: require('../../assets/Tron.png') },
   ];
 
   return (
@@ -58,12 +61,11 @@ const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
                 style={[styles.chainCard, selected ? styles.chainCardSelected : null]}
                 onPress={() => {
                   setSelectedChain(c.id);
-                  // open token selection for this chain
                   navigation.navigate('TokenSelection' as never, { chainId: c.id, chainName: c.name } as never);
                 }}
                 activeOpacity={0.9}
               >
-                <Text style={styles.chainEmoji}>{c.emoji}</Text>
+                <Image source={c.logo} style={styles.chainImage} resizeMode="contain" />
                 <Text style={styles.chainName}>{c.name}</Text>
               </TouchableOpacity>
             );
@@ -83,7 +85,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 44,
   },
   back: { color: '#2563eb', fontWeight: '800' },
   outlineBtn: {
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eef6ff',
     borderColor: '#2563eb',
   },
-  chainEmoji: { fontSize: 26, marginBottom: 6 },
+  chainImage: { width: 48, height: 48, marginBottom: 8 },
   chainName: { fontSize: 15, fontWeight: '700', color: '#111827', textAlign: 'center' },
 });
 
