@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Platform, ToastAndroid } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Clipboard from '@react-native-clipboard/clipboard';
 
@@ -12,7 +12,6 @@ type RootStackParamList = {
     mobile?: string;
     receivingAddress?: string;
   } | undefined;
-  QrCodeScreen: { address?: string; chainName?: string } | undefined;
   PaymentMethod: undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'DetailedReceipt'>;
@@ -28,25 +27,65 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
   } = route.params ?? {};
 
   const txId = useMemo(() => `TX-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, []);
+  const timestamp = useMemo(() => new Date().toLocaleString(), []);
 
   const copyAddress = () => {
     Clipboard.setString(receivingAddress);
-    Alert.alert('Copied', 'Address copied to clipboard');
+    if (Platform.OS === 'android') ToastAndroid.show('Address copied', ToastAndroid.SHORT);
+    else Alert.alert('Copied', 'Address copied to clipboard');
+
+    // navigate to final success (simulate success)
+    navigation.navigate('FinalSuccess' as never, {
+      success: true,
+      chainName,
+      tokenSymbol,
+      tokenAmount,
+      usdAmount,
+      mobile,
+      receivingAddress,
+    } as never);
   };
 
   const sendReceiptSms = () => {
     console.info('sendReceiptSms stub — implement SMS API');
-    Alert.alert('Sent', 'E-receipt (simulated) sent via SMS');
+    // simulate success and show final screen
+    navigation.navigate('FinalSuccess' as never, {
+      success: true,
+      chainName,
+      tokenSymbol,
+      tokenAmount,
+      usdAmount,
+      mobile,
+      receivingAddress,
+    } as never);
   };
 
   const verifyTransaction = () => {
     console.info('verifyTransaction stub — open block explorer / call API');
-    Alert.alert('Verify', 'Open explorer (stub)');
+    // simulate verification success and show final screen
+    navigation.navigate('FinalSuccess' as never, {
+      success: true,
+      chainName,
+      tokenSymbol,
+      tokenAmount,
+      usdAmount,
+      mobile,
+      receivingAddress,
+    } as never);
   };
 
   const printReceipt = () => {
     console.info('printReceipt stub');
-    Alert.alert('Print', 'Print (simulated)');
+    // simulate success screen after print
+    navigation.navigate('FinalSuccess' as never, {
+      success: true,
+      chainName,
+      tokenSymbol,
+      tokenAmount,
+      usdAmount,
+      mobile,
+      receivingAddress,
+    } as never);
   };
 
   return (
@@ -58,6 +97,21 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
+      {/* QR area (title only, not a button) */}
+      <View style={styles.qrWrap}>
+        <Text style={styles.qrTitle}>Scan QR code to pay</Text>
+        <Image source={require('../../assets/vaadin_qrcode.png')} style={styles.qrImage} resizeMode="contain" />
+        <View style={styles.addressRow}>
+          <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
+            {receivingAddress}
+          </Text>
+          <TouchableOpacity style={styles.copyBtn} onPress={copyAddress}>
+            <Text style={styles.copyText}>Copy</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Details card */}
       <View style={styles.card}>
         <View style={styles.topBadge}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
@@ -94,19 +148,25 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
 
-        <View style={styles.addressRow}>
-          <Text style={styles.label}>Receiving Address:</Text>
-          <Text style={styles.address} numberOfLines={2}>{receivingAddress}</Text>
+        <View style={styles.separator} />
 
-          <View style={styles.addressActions}>
-            <TouchableOpacity style={styles.copyBtn} onPress={copyAddress}>
-              <Text style={styles.copyText}>Copy</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.qrBtn} onPress={() => navigation.navigate('QrCodeScreen' as never, { address: receivingAddress, chainName } as never)}>
-              <Text style={styles.qrText}>Show QR</Text>
-            </TouchableOpacity>
+        <View style={styles.metaRow}>
+          <View>
+            <Text style={styles.smallLabel}>Customer</Text>
+            <Text style={styles.smallValue}>{mobile}</Text>
           </View>
+
+          <View>
+            <Text style={styles.smallLabel}>Date</Text>
+            <Text style={styles.smallValue}>{timestamp}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.separator, { marginTop: 12 }]} />
+
+        <View style={styles.receiptRow}>
+          <Text style={styles.smallLabel}>Receipt</Text>
+          <Text style={styles.txId}>{txId}</Text>
         </View>
 
         <TouchableOpacity style={styles.primaryBtn} onPress={sendReceiptSms}>
@@ -117,18 +177,43 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.ghostText}>Print E-Receipt</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.doneBtn}
+        onPress={() =>
+          navigation.navigate('FinalSuccess' as never, {
+            success: true,
+            chainName,
+            tokenSymbol,
+            tokenAmount,
+            usdAmount,
+            mobile,
+            receivingAddress,
+          } as never)
+        }
+      >
+        <Text style={styles.doneText}>Done</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 18, paddingBottom: 40, backgroundColor: '#f7fafc' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  header: { fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  container: { padding: 18, paddingBottom: 40, backgroundColor: '#f7fafc', alignItems: 'center' },
+  headerRow: { width: '100%', maxWidth: 720, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  header: { fontSize: 18, fontWeight: '800' },
   logout: { color: '#2563eb', fontWeight: '700' },
 
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 },
+  qrWrap: { width: '100%', maxWidth: 720, alignItems: 'center', marginBottom: 14, backgroundColor: '#fff', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 3 },
+  qrTitle: { fontWeight: '800', fontSize: 16, marginBottom: 8, color: '#0f172a' },
+  qrImage: { width: 180, height: 180, backgroundColor: '#fff', borderRadius: 8, marginBottom: 12 },
 
+  addressRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 },
+  addressText: { flex: 1, marginRight: 12, color: '#111827', fontWeight: '700' },
+  copyBtn: { backgroundColor: '#eef2ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  copyText: { color: '#2563eb', fontWeight: '800' },
+
+  card: { width: '100%', maxWidth: 720, backgroundColor: '#fff', borderRadius: 12, padding: 18, marginTop: 6, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 4 },
   topBadge: { alignItems: 'center', marginBottom: 12 },
   logo: { width: 120, height: 36, marginBottom: 8 },
   success: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
@@ -146,13 +231,17 @@ const styles = StyleSheet.create({
   value: { fontWeight: '800', fontSize: 14, marginTop: 4 },
   valueRight: { fontWeight: '800', fontSize: 14, marginTop: 4 },
 
-  addressRow: { marginTop: 12 },
-  address: { marginTop: 6, color: '#111827', fontWeight: '700' },
-  addressActions: { flexDirection: 'row', marginTop: 10 },
-  copyBtn: { backgroundColor: '#eef2ff', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginRight: 8 },
-  copyText: { color: '#2563eb', fontWeight: '800' },
-  qrBtn: { backgroundColor: '#fff', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e6eef8' },
-  qrText: { color: '#2563eb', fontWeight: '800' },
+  separator: { height: 1, backgroundColor: '#eef2ff', marginVertical: 12 },
+
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  smallLabel: { color: '#94a3b8', fontSize: 12 },
+  smallValue: { fontSize: 13, fontWeight: '700', marginTop: 4 },
+
+  receiptRow: { marginTop: 8 },
+  txId: { fontSize: 13, fontWeight: '700', marginTop: 6, color: '#111827' },
+
+  doneBtn: { backgroundColor: '#2563eb', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 16 },
+  doneText: { color: '#fff', fontWeight: '800' },
 });
 
 export default DetailedReceipt;

@@ -27,6 +27,7 @@ import OtpVerification from './src/screens/OtpVerification';
 import ReceiptSuccess from './src/screens/ReceiptSuccess';
 import ConfirmPayment from './src/screens/ConfirmPayment';
 import QrCodeScreen from './src/screens/QrCodeScreen';
+import FinalSuccess from './src/screens/FinalSuccess';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -78,6 +79,7 @@ function App(): React.JSX.Element {
             <Stack.Screen name="PhoneConfirmation" component={PhoneConfirmation} />
             <Stack.Screen name="OtpVerification" component={OtpVerification} />
             <Stack.Screen name="ReceiptSuccess" component={ReceiptSuccess} />
+            <Stack.Screen name="FinalSuccess" component={FinalSuccess} />
             <Stack.Screen name="CardMethod" component={CardMethod} />
             <Stack.Screen name="CardNetworkSelection" component={CardNetworkSelection} />
             <Stack.Screen name="CardDetails" component={CardDetails} />
@@ -87,6 +89,7 @@ function App(): React.JSX.Element {
             <Stack.Screen name="Signup" component={Signup} />
             <Stack.Screen name="Home" component={Home} />
             <Stack.Screen name="AuthGate" component={AuthGate} />
+            
           </Stack.Navigator>
         </NavigationContainer>
       </ErrorBoundary>
