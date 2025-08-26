@@ -1,9 +1,7 @@
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
-const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
 
-const UserSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -16,15 +14,18 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
+      required: true,
       select: false,
     },
   },
   { timestamps: true }
 );
 
-//comapre password
-UserSchema.methods.comparePassword = async function (enteredPassword) {
+// Compare password method
+userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', UserSchema);
+// ✅ Export as default (since your controllers import `User`)
+const User = mongoose.model('User', userSchema);
+export default User;
