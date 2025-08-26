@@ -24,11 +24,11 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Home: undefined;
-  PaymentMethod: undefined;
+  PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash'; selectedToken?: string; chainId?: string } | undefined;
   BlockchainMethod: undefined; // NEW
   CardMethod: undefined; // NEW
   GCashMethod: undefined; // NEW
-  TokenSelection: undefined; // NEW
+  TokenSelection: { chainId: string; chainName?: string } | undefined; // NEW
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

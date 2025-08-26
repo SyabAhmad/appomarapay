@@ -1,39 +1,50 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
-  TokenSelection: { chainId: string };
-  PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash'; selectedToken?: string; chainId?: string };
+  TokenSelection: { chainId: string; chainName?: string } | undefined;
+  PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash'; selectedToken?: string; chainId?: string } | undefined;
   Login: undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'TokenSelection'>;
 
-const TOKENS_BY_CHAIN: Record<string, Array<{ id: string; symbol: string; name: string }>> = {
+const TOKENS_BY_CHAIN: Record<string, Array<{ id: string; symbol: string; name: string; emoji?: string }>> = {
   ethereum: [
-    { id: 'eth', symbol: 'ETH', name: 'Ether' },
-    { id: 'usdc', symbol: 'USDC', name: 'USD Coin' },
-    { id: 'dai', symbol: 'DAI', name: 'Dai' },
-    { id: 'weth', symbol: 'WETH', name: 'Wrapped Ether' },
+    { id: 'eth', symbol: 'ETH', name: 'Ether', emoji: 'Ξ' },
+    { id: 'usdc', symbol: 'USDC', name: 'USD Coin', emoji: '$' },
+    { id: 'dai', symbol: 'DAI', name: 'Dai', emoji: '◈' },
+    { id: 'weth', symbol: 'WETH', name: 'Wrapped Ether', emoji: '⟲' },
+    { id: 'link', symbol: 'LINK', name: 'Chainlink', emoji: '🔗' },
+    { id: 'aave', symbol: 'AAVE', name: 'Aave', emoji: 'A' },
   ],
   bitcoin: [
-    { id: 'btc', symbol: 'BTC', name: 'Bitcoin' },
-    { id: 'tbtc', symbol: 'tBTC', name: 'tBTC (wrapped)' },
+    { id: 'btc', symbol: 'BTC', name: 'Bitcoin', emoji: '₿' },
+    { id: 'tbtc', symbol: 'tBTC', name: 'tBTC (wrapped)', emoji: 't' },
   ],
   solana: [
-    { id: 'sol', symbol: 'SOL', name: 'Solana' },
-    { id: 'usdc_s', symbol: 'USDC', name: 'USDC' },
+    { id: 'sol', symbol: 'SOL', name: 'Solana', emoji: '◎' },
+    { id: 'usdc_s', symbol: 'USDC', name: 'USDC', emoji: '$' },
   ],
   polygon: [
-    { id: 'matic', symbol: 'MATIC', name: 'Polygon' },
-    { id: 'usdc_p', symbol: 'USDC', name: 'USDC' },
+    { id: 'matic', symbol: 'MATIC', name: 'Polygon', emoji: 'M' },
+    { id: 'usdc_p', symbol: 'USDC', name: 'USDC', emoji: '$' },
   ],
+  avalanche: [{ id: 'avax', symbol: 'AVAX', name: 'Avalanche', emoji: 'A' }],
+  bsc: [{ id: 'bnb', symbol: 'BNB', name: 'BNB', emoji: '𐄷' }],
+  // extend as needed
 };
 
 const TokenSelection: React.FC<Props> = ({ navigation, route }) => {
   const chainId = route.params?.chainId ?? 'ethereum';
+  const chainName = route.params?.chainName ?? chainId;
   const tokens = useMemo(() => TOKENS_BY_CHAIN[chainId] ?? [], [chainId]);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+
+  const filtered = tokens.filter(
+    (t) => !query || t.symbol.toLowerCase().includes(query.toLowerCase()) || t.name.toLowerCase().includes(query.toLowerCase())
+  );
 
   return (
     <View style={styles.safe}>
@@ -42,14 +53,22 @@ const TokenSelection: React.FC<Props> = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.back}>{'< Back'}</Text>
           </TouchableOpacity>
-          <Text style={styles.topTitle}>Select token — {chainId}</Text>
+          <Text style={styles.topTitle}>{chainName} — Select token</Text>
           <View style={{ width: 88 }} />
         </View>
 
-        <Text style={styles.sectionSubtitle}>Pick a token for {chainId}</Text>
+        <Text style={styles.helper}>Pick a token to use with {chainName}</Text>
+
+        <TextInput
+          placeholder="Search token (symbol or name)"
+          value={query}
+          onChangeText={setQuery}
+          style={styles.search}
+          placeholderTextColor="#9ca3af"
+        />
 
         <View style={styles.grid}>
-          {tokens.map((t) => {
+          {filtered.map((t) => {
             const selected = selectedToken === t.id;
             return (
               <TouchableOpacity
@@ -58,47 +77,66 @@ const TokenSelection: React.FC<Props> = ({ navigation, route }) => {
                 onPress={() => setSelectedToken(t.id)}
                 activeOpacity={0.9}
               >
-                <View style={styles.tokenIcon}>
-                  <Text style={{ fontWeight: '700' }}>{t.symbol[0]}</Text>
+                <View style={[styles.tokenIcon, selected ? styles.tokenIconSelected : null]}>
+                  <Text style={{ fontWeight: '700' }}>{t.emoji ?? t.symbol[0]}</Text>
                 </View>
-                <Text style={styles.tokenSymbol}>{t.symbol}</Text>
-                <Text style={styles.tokenName}>{t.name}</Text>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={styles.tokenSymbol}>{t.symbol}</Text>
+                  <Text style={styles.tokenName}>{t.name}</Text>
+                </View>
+                {selected ? <View style={styles.check}><Text style={{ color: '#fff', fontWeight: '800' }}>✓</Text></View> : null}
               </TouchableOpacity>
             );
           })}
         </View>
+      </ScrollView>
 
+      {/* sticky confirm bar */}
+      <View style={styles.confirmBar}>
+        <Text style={styles.confirmText}>{selectedToken ? `Selected: ${selectedToken.toUpperCase()}` : 'No token selected'}</Text>
         <TouchableOpacity
-          style={[styles.proceedBtn, !selectedToken ? { opacity: 0.6 } : null]}
+          style={[styles.confirmBtn, !selectedToken ? { opacity: 0.6 } : null]}
           disabled={!selectedToken}
           onPress={() =>
             navigation.navigate(
-              'PaymentMethod' as never,
-              { selectedMethod: 'Blockchain', selectedToken, chainId } as never
+              'PaymentMethod',
+              { selectedMethod: 'Blockchain', selectedToken, chainId }
             )
           }
         >
-          <Text style={styles.proceedText}>Continue</Text>
+          <Text style={styles.confirmBtnText}>Confirm</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fff' },
-  container: { paddingTop: 30, paddingBottom: 40, paddingHorizontal: 16, alignItems: 'center' },
+  container: { paddingTop: 20, paddingBottom: 120, paddingHorizontal: 16, alignItems: 'center' },
   topRow: {
     width: '100%',
     maxWidth: 560,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 8,
   },
   back: { color: '#2563eb', fontWeight: '800' },
   topTitle: { fontSize: 16, fontWeight: '800', color: '#111827', textAlign: 'center' },
-  sectionSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 12 },
+  helper: { color: '#6b7280', marginBottom: 8, textAlign: 'center' },
+  search: {
+    width: '100%',
+    maxWidth: 560,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e6eef8',
+    backgroundColor: '#f8fafc',
+    marginBottom: 12,
+    color: '#0f172a',
+  },
   grid: {
     width: '100%',
     maxWidth: 560,
@@ -109,7 +147,7 @@ const styles = StyleSheet.create({
   },
   tokenCard: {
     width: '48%',
-    minHeight: 100,
+    minHeight: 110,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
@@ -118,6 +156,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 8,
     backgroundColor: '#fff',
+    position: 'relative',
   },
   tokenSelected: { backgroundColor: '#eef6ff', borderColor: '#2563eb' },
   tokenIcon: {
@@ -129,18 +168,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
+  tokenIconSelected: { backgroundColor: '#dbeafe' },
   tokenSymbol: { fontWeight: '800', fontSize: 16, color: '#0f172a' },
   tokenName: { color: '#6b7280', marginTop: 4, textAlign: 'center' },
-  proceedBtn: {
-    marginTop: 20,
-    width: '100%',
-    maxWidth: 560,
+  check: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    width: 28,
+    height: 20,
+    borderRadius: 6,
     backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderColor: '#e6eef8',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  proceedText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  confirmText: { color: '#111827', fontWeight: '700' },
+  confirmBtn: {
+    backgroundColor: '#2563eb',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+  },
+  confirmBtnText: { color: '#fff', fontWeight: '800' },
 });
 
 export default TokenSelection;

@@ -9,6 +9,7 @@ type RootStackParamList = {
   CardSelectedItemLite: undefined;
   GCashMethod: undefined;
   CardMethod: undefined;
+  TokenSelection: { chainId: string; chainName?: string } | undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'BlockchainMethod'>;
 
@@ -21,17 +22,19 @@ const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
     { id: 'bitcoin', name: 'Bitcoin', emoji: '₿' },
     { id: 'solana', name: 'Solana', emoji: '◎' },
     { id: 'polygon', name: 'Polygon', emoji: 'M' },
-    // add more chains here
+    { id: 'avalanche', name: 'Avalanche', emoji: 'A' },
+    { id: 'fantom', name: 'Fantom', emoji: 'F' },
+    { id: 'optimism', name: 'Optimism', emoji: 'O' },
+    { id: 'arbitrum', name: 'Arbitrum', emoji: 'a' },
+    { id: 'bsc', name: 'BNB Chain', emoji: '𐄷' },
+    { id: 'celo', name: 'Celo', emoji: 'C' },
   ];
-
-  const goBackWithSelection = () =>
-    navigation.navigate('PaymentMethod' as never, { selectedMethod: 'Blockchain' } as never);
 
   return (
     <View style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.topRow}>
-          <TouchableOpacity onPress={goBackWithSelection}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.back}>{'< Back'}</Text>
           </TouchableOpacity>
 
@@ -53,8 +56,11 @@ const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity
                 key={c.id}
                 style={[styles.chainCard, selected ? styles.chainCardSelected : null]}
-                // open TokenSelection for the tapped chain
-                onPress={() => navigation.navigate('TokenSelection' as never, { chainId: c.id } as never)}
+                onPress={() => {
+                  setSelectedChain(c.id);
+                  // open token selection for this chain
+                  navigation.navigate('TokenSelection' as never, { chainId: c.id, chainName: c.name } as never);
+                }}
                 activeOpacity={0.9}
               >
                 <Text style={styles.chainEmoji}>{c.emoji}</Text>
@@ -63,18 +69,6 @@ const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
             );
           })}
         </View>
-
-        <TouchableOpacity
-          style={[styles.proceedBtn, !selectedChain ? { opacity: 0.6 } : null]}
-          disabled={!selectedChain}
-          onPress={() => {
-            // proceed action: navigate to payment flow for selectedChain or handle selection
-            // currently returns to PaymentMethod with Blockchain selected
-            navigation.navigate('PaymentMethod' as never, { selectedMethod: 'Blockchain' } as never);
-          }}
-        >
-          <Text style={styles.proceedText}>Continue</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -131,17 +125,7 @@ const styles = StyleSheet.create({
     borderColor: '#2563eb',
   },
   chainEmoji: { fontSize: 26, marginBottom: 6 },
-  chainName: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  proceedBtn: {
-    marginTop: 20,
-    width: '100%',
-    maxWidth: 560,
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  proceedText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  chainName: { fontSize: 15, fontWeight: '700', color: '#111827', textAlign: 'center' },
 });
 
 export default BlockchainMethod;
