@@ -22,6 +22,11 @@ import TokenSelection from './src/screens/TokenSelection';
 import AmountEntry from './src/screens/AmountEntry';
 import CardNetworkSelection from './src/screens/CardNetworkSelection';
 import CardDetails from './src/screens/CardDetails';
+import PhoneConfirmation from './src/screens/PhoneConfirmation';
+import OtpVerification from './src/screens/OtpVerification';
+import ReceiptSuccess from './src/screens/ReceiptSuccess';
+import ConfirmPayment from './src/screens/ConfirmPayment';
+import QrCodeScreen from './src/screens/QrCodeScreen';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -68,6 +73,11 @@ function App(): React.JSX.Element {
             <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
             <Stack.Screen name="TokenSelection" component={TokenSelection} />
             <Stack.Screen name="AmountEntry" component={AmountEntry} />
+            <Stack.Screen name="ConfirmPayment" component={ConfirmPayment} />
+            <Stack.Screen name="QrCodeScreen" component={QrCodeScreen} />
+            <Stack.Screen name="PhoneConfirmation" component={PhoneConfirmation} />
+            <Stack.Screen name="OtpVerification" component={OtpVerification} />
+            <Stack.Screen name="ReceiptSuccess" component={ReceiptSuccess} />
             <Stack.Screen name="CardMethod" component={CardMethod} />
             <Stack.Screen name="CardNetworkSelection" component={CardNetworkSelection} />
             <Stack.Screen name="CardDetails" component={CardDetails} />
