@@ -20,7 +20,7 @@ const Logout: React.FC<LogoutScreenProp> = ({ navigation, route }) => {
       Alert.alert('Error', 'Failed to logout');
     }
   };
-// asdasd
+
   return (
     <View style={styles.container}>
       <View style={styles.header}><Text style={styles.headerTitle}>Logout</Text></View>
