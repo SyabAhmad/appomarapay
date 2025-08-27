@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Platform, ToastAndroid, Linking, ActivityIndicator } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Clipboard from '@react-native-clipboard/clipboard';
-
+import {BASE_API_URL} from '@env';
 type RootStackParamList = {
   DetailedReceipt: {
     chainName?: string;
@@ -22,7 +22,8 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DetailedReceipt'>;
 
-const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
+// const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
+const API_BASE = BASE_API_URL
 
 const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
   const {

@@ -17,29 +17,25 @@ const rawString = (req) => {
 
 export const createCardPayment = async (req, res) => {
   try {
-    const { amount, currency = 'usd', metadata = {} } = req.body;
-    const amountInCents = Math.round(Number(amount) * 100);
+    const { amount = '0.00', currency = 'usd', metadata = {} } = req.body;
+    // Stripe expects integer amount in cents
+    const amountCents = Math.round(Number(amount) * 100);
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents,
+      amount: amountCents,
       currency,
+      payment_method_types: ['card'],
       metadata,
     });
 
-    const tx = await Transaction.create({
-      type: 'card',
-      provider: 'stripe',
-      providerId: paymentIntent.id,
-      amount: amountInCents,
-      currency,
-      status: paymentIntent.status,
-      meta: { metadata },
+    return res.json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
     });
-
-    res.json({ success: true, clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id, txId: tx._id });
   } catch (err) {
-    console.error('createCardPayment', err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('createCardPayment error', err?.response?.data || err.message || err);
+    res.status(500).json({ success: false, message: err?.message || 'internal' });
   }
 };
 

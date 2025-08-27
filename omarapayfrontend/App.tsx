@@ -8,7 +8,8 @@ import { StatusBar, useColorScheme, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
+import { StripeProvider } from '@stripe/stripe-react-native';
+import {STRIPE_PUBLISHABLE_KEY} from '@env';
 // screens used in your flow
 import AuthGate from './src/screens/AuthGate';
 import PinAuth from './src/screens/PinAuth';
@@ -29,6 +30,7 @@ import Login from './src/screens/auth/Login';
 import Signup from './src/screens/auth/Signup';
 import Home from './src/screens/Home';
 import Logout from './src/screens/Logout';
+import CardPayment from './src/screens/CardPayment';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -68,30 +70,33 @@ function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <NavigationContainer>
-          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-          <Stack.Navigator initialRouteName="AuthGate" screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="AuthGate" component={AuthGate} />
-            <Stack.Screen name="PinAuth" component={PinAuth} />
-            {/* <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="Signup" component={Signup} /> */}
-            <Stack.Screen name="Home" component={Home} />
-            <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
-            <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
-            <Stack.Screen name="TokenSelection" component={TokenSelection} />
-            <Stack.Screen name="AmountEntry" component={AmountEntry} />
-            <Stack.Screen name="ConfirmPayment" component={ConfirmPayment} />
-            <Stack.Screen name="PhoneConfirmation" component={PhoneConfirmation} />
-            <Stack.Screen name="OtpVerification" component={OtpVerification} />
-            <Stack.Screen name="CryptoPay" component={CryptoPay} />
-            <Stack.Screen name="CardMethod" component={CardMethod} />
-            <Stack.Screen name="GCashMethod" component={GCashMethod} />
-            <Stack.Screen name="DetailedReceipt" component={DetailedReceipt} />
-            <Stack.Screen name="FinalSuccess" component={FinalSuccess} />
-            <Stack.Screen name="FinalFailure" component={FinalFailure} />
-            <Stack.Screen name="Logout" component={Logout} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+          <NavigationContainer>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+            <Stack.Navigator initialRouteName="AuthGate" screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="AuthGate" component={AuthGate} />
+              <Stack.Screen name="PinAuth" component={PinAuth} />
+              {/* <Stack.Screen name="Login" component={Login} />
+              <Stack.Screen name="Signup" component={Signup} /> */}
+              <Stack.Screen name="Home" component={Home} />
+              <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
+              <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
+              <Stack.Screen name="TokenSelection" component={TokenSelection} />
+              <Stack.Screen name="AmountEntry" component={AmountEntry} />
+              <Stack.Screen name="ConfirmPayment" component={ConfirmPayment} />
+              <Stack.Screen name="PhoneConfirmation" component={PhoneConfirmation} />
+              <Stack.Screen name="OtpVerification" component={OtpVerification} />
+              <Stack.Screen name="CryptoPay" component={CryptoPay} />
+              <Stack.Screen name="CardMethod" component={CardMethod} />
+              <Stack.Screen name="GCashMethod" component={GCashMethod} />
+              <Stack.Screen name="DetailedReceipt" component={DetailedReceipt} />
+              <Stack.Screen name="FinalSuccess" component={FinalSuccess} />
+              <Stack.Screen name="FinalFailure" component={FinalFailure} />
+              <Stack.Screen name="Logout" component={Logout} />
+              <Stack.Screen name="CardPayment" component={CardPayment} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </StripeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

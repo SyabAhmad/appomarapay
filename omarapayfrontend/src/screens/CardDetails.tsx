@@ -44,32 +44,8 @@ const detectCard = (raw: string) => {
 const CardDetails: React.FC<Props> = ({ navigation, route }) => {
   const networkName = route.params?.networkName ?? 'Card';
 
-  const [cardNumber, setCardNumber] = useState('');
-  const [holder, setHolder] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [selectedCard, setSelectedCard] = useState<string | null>(null);
-
-  const canContinue = cardNumber.replace(/\D/g, '').length >= 12 && holder.length > 1 && expiry.length >= 4 && cvv.length >= 3;
-
-  const detected = useMemo(() => detectCard(cardNumber), [cardNumber]);
-
-  // Auto-select detected card brand as the user types
-  useEffect(() => {
-    if (detected) setSelectedCard(detected.id);
-    else setSelectedCard(null);
-  }, [detected]);
-
-  const onChangeCard = (t: string) => {
-    // allow spaces while keeping internal digits clean
-    const cleaned = t.replace(/[^\d]/g, '').slice(0, 19);
-    setCardNumber(formatCardNumber(cleaned));
-  };
-
-  const onCopySample = () => {
-    // removed per request — kept function removed from UI
-  };
-
+  // simplified: do not collect raw card details here.
+  // Collect card details once at payment (CardPayment) using Stripe CardField.
   return (
     <View style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -77,61 +53,30 @@ const CardDetails: React.FC<Props> = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.back}>{'< Back'}</Text>
           </TouchableOpacity>
-          <Text style={styles.topTitle}>{networkName} — Card details</Text>
+          <Text style={styles.topTitle}>{networkName}</Text>
           <View style={{ width: 88 }} />
         </View>
 
-        <Text style={styles.helper}>Enter card details</Text>
+        <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.helper}>You will enter card details on the payment screen.</Text>
 
-        <View style={styles.inputWrap}>
-          <TextInput
-            placeholder="Card number"
-            value={cardNumber}
-            onChangeText={onChangeCard}
-            keyboardType="numeric"
-            style={[styles.input, { paddingRight: 120 }]}
-            maxLength={26}
-          />
-          {detected ? (
-            <View style={styles.detected}>
-              <Image source={detected.asset} style={styles.detectedImg} resizeMode="contain" />
-              <Text style={styles.detectedText}>{detected.name}</Text>
-            </View>
-          ) : (
-            <View style={styles.detectedPlaceholder}>
-              <Text style={styles.detectedTextPlaceholder}>Unsupported</Text>
-            </View>
-          )}
-        </View>
-
-        <TextInput placeholder="Card holder name" value={holder} onChangeText={setHolder} style={styles.input} />
-        <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
-          <TextInput placeholder="MM/YY" value={expiry} onChangeText={setExpiry} style={[styles.input, { flex: 1 }]} />
-          <TextInput placeholder="CVV" value={cvv} onChangeText={setCvv} keyboardType="numeric" style={[styles.input, { flex: 1 }]} />
-        </View>
-
-        {/* supported logos row — highlight the automatically selected brand */}
         <View style={styles.supportRow}>
-          {supportedCardDefinitions.map((c) => {
-            const isMatch = selectedCard === c.id;
-            return (
-              <View key={c.id} style={[styles.supportItem, isMatch ? styles.supportItemActive : null]}>
-                <Image source={c.asset} style={[styles.supportImg, isMatch ? null : { opacity: 0.45 }]} resizeMode="contain" />
-                <Text style={[styles.supportLabel, isMatch ? styles.supportLabelActive : null]}>{c.name}</Text>
-              </View>
-            );
-          })}
+          {supportedCardDefinitions.map((c) => (
+            <View key={c.id} style={styles.supportItem}>
+              <Image source={c.asset} style={styles.supportImg} resizeMode="contain" />
+              <Text style={styles.supportLabel}>{c.name}</Text>
+            </View>
+          ))}
         </View>
 
         <TouchableOpacity
-          style={[styles.proceedBtn, !canContinue ? { opacity: 0.6 } : null]}
-          disabled={!canContinue}
+          style={styles.proceedBtn}
           onPress={() =>
             navigation.navigate('AmountEntry' as never, {
               chainId: 'card',
               chainName: networkName,
-              tokenId: selectedCard ?? 'card',
-              tokenSymbol: networkName,
+              tokenId: 'card',
+              tokenSymbol: 'USD',
             } as never)
           }
         >

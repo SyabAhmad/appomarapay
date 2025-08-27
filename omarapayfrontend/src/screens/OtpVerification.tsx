@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, ActivityIndicator } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import NumberKeyboard from '../components/NumberKeyboard';
-
+import {BASE_API_URL} from '@env';
 type RootStackParamList = {
   OtpVerification: {
     chainId?: string;
@@ -18,7 +18,8 @@ type RootStackParamList = {
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'OtpVerification'>;
 
-const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
+// const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
+const API_BASE = BASE_API_URL;
 
 const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
   const { chainId, chainName, tokenId, tokenSymbol, selectedAmount, phone, otp } = route.params ?? {};
@@ -90,19 +91,17 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
           }
         }
 
-        // non-crypto: go to DetailedReceipt (simulate success)
+        // non-crypto: route to CardPayment so user can enter card details and confirm
         navigation.reset({
           index: 0,
           routes: [
             {
-              name: 'DetailedReceipt' as never,
+              name: 'CardPayment' as never,
               params: {
-                chainName,
-                tokenSymbol,
-                tokenAmount: selectedAmount,
-                usdAmount: selectedAmount,
-                mobile: phone,
-                receivingAddress: '-',
+                amount: selectedAmount,
+                currency: 'usd',
+                description: `Payment for ${tokenSymbol ?? chainName}`,
+                metadata: { phone, tokenSymbol, chainName },
               } as never,
             },
           ],
