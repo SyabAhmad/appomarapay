@@ -9,24 +9,26 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+// screens used in your flow
 import AuthGate from './src/screens/AuthGate';
 import PinAuth from './src/screens/PinAuth';
-import Home from './src/screens/Home';
 import PaymentMethod from './src/screens/PaymentMethod';
-import BlockchainMethod from './src/screens/BlockchainMethod'; // NEW
-import CardMethod from './src/screens/CardMethod'; // NEW
-import GCashMethod from './src/screens/GCashMethod'; // NEW
-import GCashDetails from './src/screens/GCashDetails'; // NEW
+import BlockchainMethod from './src/screens/BlockchainMethod';
 import TokenSelection from './src/screens/TokenSelection';
 import AmountEntry from './src/screens/AmountEntry';
-import CardNetworkSelection from './src/screens/CardNetworkSelection';
-import CardDetails from './src/screens/CardDetails';
+import ConfirmPayment from './src/screens/ConfirmPayment';
 import PhoneConfirmation from './src/screens/PhoneConfirmation';
 import OtpVerification from './src/screens/OtpVerification';
-import ReceiptSuccess from './src/screens/ReceiptSuccess';
-import ConfirmPayment from './src/screens/ConfirmPayment';
-import QrCodeScreen from './src/screens/QrCodeScreen';
+import CryptoPay from './src/screens/CryptoPay';
+import CardMethod from './src/screens/CardMethod';
+import GCashMethod from './src/screens/GCashMethod';
+import DetailedReceipt from './src/screens/DetailedReceipt';
 import FinalSuccess from './src/screens/FinalSuccess';
+import FinalFailure from './src/screens/FinalFailure';
+import Login from './src/screens/auth/Login';
+import Signup from './src/screens/auth/Signup';
+import Home from './src/screens/Home';
+import Logout from './src/screens/Logout';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -71,22 +73,23 @@ function App(): React.JSX.Element {
           <Stack.Navigator initialRouteName="AuthGate" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="AuthGate" component={AuthGate} />
             <Stack.Screen name="PinAuth" component={PinAuth} />
+            {/* <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Signup" component={Signup} /> */}
             <Stack.Screen name="Home" component={Home} />
             <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
             <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
             <Stack.Screen name="TokenSelection" component={TokenSelection} />
             <Stack.Screen name="AmountEntry" component={AmountEntry} />
             <Stack.Screen name="ConfirmPayment" component={ConfirmPayment} />
-            <Stack.Screen name="QrCodeScreen" component={QrCodeScreen} />
             <Stack.Screen name="PhoneConfirmation" component={PhoneConfirmation} />
             <Stack.Screen name="OtpVerification" component={OtpVerification} />
-            <Stack.Screen name="ReceiptSuccess" component={ReceiptSuccess} />
-            <Stack.Screen name="FinalSuccess" component={FinalSuccess} />
+            <Stack.Screen name="CryptoPay" component={CryptoPay} />
             <Stack.Screen name="CardMethod" component={CardMethod} />
-            <Stack.Screen name="CardNetworkSelection" component={CardNetworkSelection} />
-            <Stack.Screen name="CardDetails" component={CardDetails} />
             <Stack.Screen name="GCashMethod" component={GCashMethod} />
-            <Stack.Screen name="GCashDetails" component={GCashDetails} />
+            <Stack.Screen name="DetailedReceipt" component={DetailedReceipt} />
+            <Stack.Screen name="FinalSuccess" component={FinalSuccess} />
+            <Stack.Screen name="FinalFailure" component={FinalFailure} />
+            <Stack.Screen name="Logout" component={Logout} />
           </Stack.Navigator>
         </NavigationContainer>
       </ErrorBoundary>

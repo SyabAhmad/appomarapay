@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking, Platform, ScrollView, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
@@ -10,7 +10,7 @@ type RootStackParamList = {
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'CryptoPay'>;
 
-const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.166:5000' : 'http://localhost:5000';
+const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
 // For a physical device replace API_BASE with http://<PC_IP>:5000
 
 const POLL_INTERVAL_MS = 5000;
@@ -20,6 +20,7 @@ const CryptoPay: React.FC<Props> = ({ navigation, route }) => {
   const { amount = '1.00', currency = 'USD', description = '' } = route.params ?? {};
   const [loading, setLoading] = useState(false);
   const [chargeId, setChargeId] = useState<string | null>(null);
+  const [hostedUrl, setHostedUrl] = useState<string | null>(null);
   const attemptsRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
 
@@ -119,6 +120,7 @@ const CryptoPay: React.FC<Props> = ({ navigation, route }) => {
       const hosted = body.hosted_url;
       const id = body.chargeId;
       setChargeId(id);
+      setHostedUrl(hosted ?? null);
 
       // open hosted_url in external browser
       if (hosted) {
@@ -137,18 +139,30 @@ const CryptoPay: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.safe}>
+    <ScrollView contentContainerStyle={styles.safe}>
       <View style={styles.card}>
         <Text style={styles.label}>Pay with Crypto</Text>
         <Text style={styles.amount}>{currency} {amount}</Text>
 
         <TouchableOpacity style={styles.payBtn} onPress={onPay} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.payText}>Pay</Text>}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.payText}>Create checkout</Text>}
         </TouchableOpacity>
 
-        {chargeId ? <Text style={styles.note}>Charge ID: {chargeId}</Text> : null}
+        {hostedUrl ? (
+          <View style={{ marginTop: 18, alignItems: 'center' }}>
+            <Text style={{ color: '#6b7280', marginBottom: 8 }}>Scan QR to open checkout</Text>
+            <Image
+              source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(hostedUrl)}` }}
+              style={{ width: 180, height: 180, borderRadius: 8 }}
+            />
+            <TouchableOpacity style={[styles.payBtn, { marginTop: 12 }]} onPress={() => Linking.openURL(hostedUrl)}>
+              <Text style={styles.payText}>Open checkout</Text>
+            </TouchableOpacity>
+            {chargeId ? <Text style={styles.note}>Charge ID: {chargeId}</Text> : null}
+          </View>
+        ) : null}
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
