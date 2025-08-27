@@ -38,6 +38,7 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
   } = route.params ?? {};
 
   const [checking, setChecking] = useState(false);
+  const [verifyingChain, setVerifyingChain] = useState(false);
 
   const txIdLocal = useMemo(() => txId ?? `TX-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, [txId]);
   const timestamp = useMemo(() => new Date().toLocaleString(), []);
@@ -146,6 +147,57 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
     });
   };
 
+  const verifyOnChain = async () => {
+    if (!chargeId) {
+      Alert.alert('No charge id', 'Unable to verify on chain.');
+      return;
+    }
+    setVerifyingChain(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/crypto/${chargeId}/verify-onchain`);
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        Alert.alert('Error', body?.message ?? `Status ${res.status}`);
+        setVerifyingChain(false);
+        return;
+      }
+      if (body.onchain === true) {
+        const confirmed = body.status === 'confirmed' || (body.receipt && body.receipt.status === 1);
+        if (confirmed) {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'FinalSuccess' as never,
+                params: {
+                  success: true,
+                  chainName,
+                  tokenSymbol,
+                  tokenAmount,
+                  usdAmount,
+                  mobile,
+                  receivingAddress: hosted_url ?? receivingAddress,
+                } as never,
+              },
+            ],
+          });
+          return;
+        } else {
+          Alert.alert('On‑chain status', `Transaction found but not confirmed yet. Confirmations: ${body.confirmations ?? 0}`);
+        }
+      } else {
+        // not able to verify onchain automatically
+        const msg = body.message || 'Unable to verify on chain automatically';
+        Alert.alert('On‑chain verification', `${msg}\nTransaction: ${body.txHash ?? 'unknown'}\nNetwork hint: ${body.networkHint ?? 'unknown'}`);
+      }
+    } catch (err) {
+      console.error('verifyOnChain', err);
+      Alert.alert('Error', 'Unable to verify on chain');
+    } finally {
+      setVerifyingChain(false);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
@@ -197,8 +249,8 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.success}>Successful Payment</Text>
         </View>
 
-        <TouchableOpacity style={styles.primaryBtn}>
-          <Text style={styles.primaryBtnText}>Verify transaction on Blockchain</Text>
+        <TouchableOpacity style={styles.primaryBtn} onPress={verifyOnChain} disabled={verifyingChain}>
+          {verifyingChain ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Verify transaction on Blockchain</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.ghostBtn} onPress={() => navigation.navigate('PaymentMethod' as never)}>

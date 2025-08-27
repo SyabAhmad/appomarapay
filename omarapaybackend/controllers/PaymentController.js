@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import axios from 'axios';
 import Transaction from '../model/Transaction.js';
 import dotenv from 'dotenv';
-import crypto from 'crypto';
+import { ethers } from 'ethers';
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
@@ -224,5 +224,109 @@ export const verifyCryptoCharge = async (req, res) => {
     console.error('verifyCryptoCharge', err?.response?.data || err.message);
     const message = err?.response?.data || err?.message || 'unknown error';
     res.status(500).json({ success: false, message });
+  }
+};
+
+// verify on-chain by inspecting Coinbase charge payments and querying an RPC provider (if configured)
+export const verifyCryptoOnChain = async (req, res) => {
+  try {
+    const chargeId = req.params.id;
+    const response = await axios.get(`https://api.commerce.coinbase.com/charges/${chargeId}`, {
+      headers: {
+        'X-CC-Api-Key': process.env.COINBASE_API_KEY,
+        'X-CC-Version': '2018-03-22',
+      },
+      timeout: 10000,
+    });
+    const charge = response.data?.data;
+    const payments = Array.isArray(charge?.payments) ? charge.payments : [];
+
+    if (!payments.length) {
+      return res.status(404).json({ success: false, message: 'No payments found on the charge', payments });
+    }
+
+    // find first payment with an onchain transaction id/hash
+    let candidate = payments.find((p) => p.transaction_id || p.transaction_hash || p.network_transaction_id || p.onchain_transaction_id) ?? payments[0];
+
+    const txHash = candidate.transaction_id || candidate.transaction_hash || candidate.network_transaction_id || candidate.onchain_transaction_id;
+    // network hints (Coinbase may provide "network" or "blockchain")
+    const networkHint = (candidate.network || candidate.blockchain || candidate.chain || candidate.network_name || '').toLowerCase();
+
+    // map common network hints to RPC env var names
+    const RPC_MAP = {
+      ethereum: process.env.RPC_ETHEREUM,
+      eth: process.env.RPC_ETHEREUM,
+      polygon: process.env.RPC_POLYGON,
+      matic: process.env.RPC_POLYGON,
+      bsc: process.env.RPC_BSC,
+      binance: process.env.RPC_BSC,
+      optimism: process.env.RPC_OPTIMISM,
+      arbitrum: process.env.RPC_ARBITRUM,
+      base: process.env.RPC_BASE,
+    };
+
+    // try direct env fallback (user can set RPC_URL_<NETWORK>)
+    let rpcUrl = RPC_MAP[networkHint] || process.env.RPC_DEFAULT || null;
+
+    // if still not found, try to discover environment key like RPC_<UPPER>
+    if (!rpcUrl && networkHint) {
+      const key = `RPC_${networkHint.toUpperCase()}`;
+      rpcUrl = process.env[key] || null;
+    }
+
+    if (!txHash) {
+      return res.status(400).json({ success: false, message: 'No transaction hash found for payment', payments });
+    }
+
+    if (!rpcUrl) {
+      // Not configured to query chain — return payment info so frontend can attempt manual verification or show block explorer links
+      return res.json({
+        success: true,
+        onchain: false,
+        message: 'No RPC configured for network; unable to verify on-chain automatically',
+        txHash,
+        networkHint,
+        payments,
+      });
+    }
+
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (!receipt) {
+      // tx exists but not mined yet OR hash unknown to provider
+      const tx = await provider.getTransaction(txHash);
+      return res.json({
+        success: true,
+        onchain: false,
+        message: 'Transaction not mined or not found yet',
+        txFound: !!tx,
+        tx,
+        txHash,
+        networkHint,
+        payments,
+      });
+    }
+
+    // compute confirmations (if receipt.blockNumber present)
+    const blockNumber = await provider.getBlockNumber();
+    const confirmations = receipt.blockNumber ? Math.max(0, blockNumber - receipt.blockNumber + 1) : 0;
+
+    // update local transaction if exists
+    await Transaction.findOneAndUpdate({ providerId: chargeId }, { status: receipt.status === 1 ? 'completed' : 'failed', meta: { ...charge, onchainReceipt: receipt } }, { upsert: false });
+
+    res.json({
+      success: true,
+      onchain: true,
+      status: receipt.status === 1 ? 'confirmed' : 'failed',
+      confirmations,
+      receipt,
+      txHash,
+      networkHint,
+      payments,
+    });
+  } catch (err) {
+    console.error('verifyCryptoOnChain', err?.response?.data || err.message || err);
+    res.status(500).json({ success: false, message: err?.response?.data || err?.message || 'unknown' });
   }
 };

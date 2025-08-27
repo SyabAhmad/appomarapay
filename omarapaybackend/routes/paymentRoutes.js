@@ -5,7 +5,8 @@ import {
   createCryptoCharge,
   coinbaseWebhook,
   getCryptoCharge,
-  verifyCryptoCharge, // add this import
+  verifyCryptoCharge,
+  verifyCryptoOnChain,
 } from '../controllers/PaymentController.js';
 
 const router = express.Router();
@@ -14,9 +15,8 @@ const router = express.Router();
 router.post('/card', createCardPayment);
 router.post('/crypto', createCryptoCharge);
 router.get('/crypto/:id', getCryptoCharge);
-
-// verification endpoint
 router.get('/crypto/:id/verify', verifyCryptoCharge);
+router.get('/crypto/:id/verify-onchain', verifyCryptoOnChain);
 
 // webhooks (raw body)
 router.post('/webhook/stripe', stripeWebhook);
