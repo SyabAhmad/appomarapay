@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   logo: { width: 120, height: 36, marginBottom: 8 },
   success: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
 
-  primaryBtn: { backgroundColor: '#2563eb', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginVertical: 8 },
+  primaryBtn: { backgroundColor: '#2563eb', padding: 12, borderRadius: 10, alignItems: 'center', marginVertical: 8 },
   primaryBtnText: { color: '#fff', fontWeight: '800' },
 
   ghostBtn: { backgroundColor: '#f1f5f9', paddingVertical: 10, borderRadius: 10, alignItems: 'center', marginVertical: 6 },
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   receiptRow: { marginTop: 8 },
   txId: { fontSize: 13, fontWeight: '700', marginTop: 6, color: '#111827' },
 
-  doneBtn: { backgroundColor: '#2563eb', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 16 },
+  doneBtn: { backgroundColor: '#2563eb', padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 16 },
   doneText: { color: '#fff', fontWeight: '800' },
 });
 
