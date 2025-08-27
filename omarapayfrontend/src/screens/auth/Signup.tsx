@@ -83,7 +83,7 @@ const Signup: React.FC<Props> = ({ navigation }) => {
 
         {/* Tabs */}
         <View style={styles.tabs}>
-          <TouchableOpacity style={[styles.tab, styles.tabInactive]} onPress={() => navigation.navigate('Login' as never)}>
+          <TouchableOpacity style={[styles.tab, styles.tabInactive]} onPress={() => navigation.navigate('PinAuth' as never)}>
             <Text style={[styles.tabText, styles.tabTextInactive]}>Login</Text>
           </TouchableOpacity>
           <View style={[styles.tab, styles.tabActive]}>

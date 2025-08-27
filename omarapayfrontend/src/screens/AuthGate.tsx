@@ -12,7 +12,7 @@ const AuthGate: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     const t = setTimeout(() => {
       navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
-    }, 1500); // splash duration in ms
+    }, 1000); // splash duration in ms
     return () => clearTimeout(t);
   }, [navigation]);
 

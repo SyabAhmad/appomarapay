@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
 
 import { LogoutScreenProp } from '../typings/types';
 
@@ -19,6 +20,22 @@ const Logout: React.FC<LogoutScreenProp> = ({ navigation, route }) => {
     } catch {
       Alert.alert('Error', 'Failed to logout');
     }
+  };
+
+  const doLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('auth_user');
+    } catch (e) {
+      console.error('logout clear error', e);
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'PinAuth' as never }],
+      })
+    );
   };
 
   return (

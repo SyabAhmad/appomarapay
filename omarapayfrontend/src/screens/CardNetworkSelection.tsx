@@ -19,7 +19,7 @@ const networks = [
 ];
 
 const CardNetworkSelection: React.FC<Props> = ({ navigation }) => {
-  const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
+  const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'PinAuth' as never }] });
 
   return (
     <View style={styles.safe}>

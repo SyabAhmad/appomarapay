@@ -33,7 +33,7 @@ const Panel: React.FC<{
 );
 
 const PaymentMethod: React.FC<Props> = ({ navigation, route }) => {
-  const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
+  const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'PinAuth' as never }] });
   const selected = route?.params?.selectedMethod;
 
   return (

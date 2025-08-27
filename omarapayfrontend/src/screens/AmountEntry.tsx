@@ -80,7 +80,7 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.back}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Enter bill amount</Text>
-        <TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] })}>
+        <TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'PinAuth' as never }] })}>
           <Text style={styles.logout}>Log Out</Text>
         </TouchableOpacity>
       </View>

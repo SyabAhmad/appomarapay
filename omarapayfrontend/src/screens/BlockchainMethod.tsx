@@ -14,7 +14,7 @@ type RootStackParamList = {
 type Props = NativeStackScreenProps<RootStackParamList, 'BlockchainMethod'>;
 
 const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
-  const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
+  const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'PinAuth' as never }] });
   const [selectedChain, setSelectedChain] = useState<string | null>(null);
 
   // use asset logos where available, fallback to app logo for missing images

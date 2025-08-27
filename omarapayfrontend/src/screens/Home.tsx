@@ -26,7 +26,8 @@ const Home: React.FC<Props> = ({ navigation }) => {
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('auth_user');
-      navigation.reset({ index: 0, routes: [{ name: 'Login' as never }] });
+      // Login screen was removed — reset to PinAuth instead
+      navigation.reset({ index: 0, routes: [{ name: 'PinAuth' as never }] });
     } catch {
       Alert.alert('Error', 'Failed to logout');
     }

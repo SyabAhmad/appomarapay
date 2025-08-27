@@ -20,6 +20,7 @@ type RootStackParamList = {
   } | undefined;
   PhoneConfirmation: any;
   Login: undefined;
+  CryptoPay: { amount: string; currency?: string; description?: string } | undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'ConfirmPayment'>;
 
@@ -93,6 +94,19 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const onRefresh = () => fetchRate(true);
 
   const onConfirm = () => {
+    // If the selected token is a crypto symbol route to CryptoPay (Coinbase flow),
+    // otherwise continue to phone confirmation flow (card / other).
+    const sym = (tokenSymbol ?? tokenId ?? '').toUpperCase();
+    const cryptoSymbols = ['ETH', 'BTC', 'SOL', 'MATIC', 'USDC', 'BNB', 'AVAX', 'TRON'];
+    if (cryptoSymbols.includes(sym)) {
+      navigation.navigate('CryptoPay' as never, {
+        amount: String(usd.toFixed(2)),
+        currency: 'USD',
+        description: `Pay ${sym} on ${chainName ?? ''}`,
+      } as never);
+      return;
+    }
+
     navigation.navigate('PhoneConfirmation' as never, {
       chainId,
       chainName,

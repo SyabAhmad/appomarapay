@@ -10,8 +10,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AuthGate from './src/screens/AuthGate';
-import Login from './src/screens/auth/Login';
-import Signup from './src/screens/auth/Signup';
+import PinAuth from './src/screens/PinAuth';
 import Home from './src/screens/Home';
 import PaymentMethod from './src/screens/PaymentMethod';
 import BlockchainMethod from './src/screens/BlockchainMethod'; // NEW
@@ -71,8 +70,7 @@ function App(): React.JSX.Element {
           <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
           <Stack.Navigator initialRouteName="AuthGate" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="AuthGate" component={AuthGate} />
-            <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="Signup" component={Signup} />
+            <Stack.Screen name="PinAuth" component={PinAuth} />
             <Stack.Screen name="Home" component={Home} />
             <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
             <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />
