@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Platform, ToastAndroid } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Platform, ToastAndroid, Linking, ActivityIndicator } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Clipboard from '@react-native-clipboard/clipboard';
 
@@ -10,11 +10,19 @@ type RootStackParamList = {
     tokenAmount?: string;
     usdAmount?: string;
     mobile?: string;
-    receivingAddress?: string;
+    receivingAddress?: string; // used for hosted_url when provided
+    hosted_url?: string | null;
+    chargeId?: string | null;
+    txId?: string | null;
   } | undefined;
   PaymentMethod: undefined;
+  FinalSuccess: undefined;
+  FinalFailure: undefined;
 };
+
 type Props = NativeStackScreenProps<RootStackParamList, 'DetailedReceipt'>;
+
+const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
 
 const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
   const {
@@ -24,91 +32,160 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
     usdAmount = '25',
     mobile = '25869321789',
     receivingAddress = '0x964a7DFb7AEf009B8f7Ed8743FF458e6ecd4bCA2',
+    hosted_url = null,
+    chargeId = null,
+    txId = null,
   } = route.params ?? {};
 
-  const txId = useMemo(() => `TX-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, []);
+  const [checking, setChecking] = useState(false);
+
+  const txIdLocal = useMemo(() => txId ?? `TX-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, [txId]);
   const timestamp = useMemo(() => new Date().toLocaleString(), []);
 
   const copyAddress = () => {
-    Clipboard.setString(receivingAddress);
-    if (Platform.OS === 'android') ToastAndroid.show('Address copied', ToastAndroid.SHORT);
-    else Alert.alert('Copied', 'Address copied to clipboard');
+    const toCopy = hosted_url ? hosted_url : receivingAddress;
+    Clipboard.setString(toCopy);
+    if (Platform.OS === 'android') ToastAndroid.show('Copied', ToastAndroid.SHORT);
+    else Alert.alert('Copied', 'Copied to clipboard');
+  };
 
-    // navigate to final success (simulate success)
-    navigation.navigate('FinalSuccess' as never, {
-      success: true,
-      chainName,
-      tokenSymbol,
-      tokenAmount,
-      usdAmount,
-      mobile,
-      receivingAddress,
-    } as never);
+  const openCheckout = async () => {
+    const url = hosted_url ?? receivingAddress;
+    if (!url) return;
+    const ok = await Linking.canOpenURL(url);
+    if (ok) Linking.openURL(url);
+  };
+
+  const checkCryptoStatus = async () => {
+    if (!chargeId) {
+      Alert.alert('No charge id', 'Unable to check status.');
+      return;
+    }
+    setChecking(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/crypto/${chargeId}`);
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        Alert.alert('Error', body?.message ?? `Status ${res.status}`);
+        setChecking(false);
+        return;
+      }
+      const status = body?.charge?.timeline?.slice(-1)[0]?.status?.toUpperCase() ?? (body?.localTx?.status ?? '').toUpperCase();
+
+      if (status === 'COMPLETED' || status === 'RESOLVED' || status === 'CONFIRMED') {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'FinalSuccess' as never,
+              params: {
+                success: true,
+                chainName,
+                tokenSymbol,
+                tokenAmount,
+                usdAmount,
+                mobile,
+                receivingAddress: hosted_url ?? receivingAddress,
+              } as never,
+            },
+          ],
+        });
+        return;
+      }
+
+      if (status === 'EXPIRED' || status === 'CANCELED' || status === 'FAILED' || status === 'UNRESOLVED') {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'FinalFailure' as never,
+              params: {
+                chainName,
+                tokenSymbol,
+                tokenAmount,
+                usdAmount,
+                mobile,
+                receivingAddress: hosted_url ?? receivingAddress,
+                errorMessage: `Payment status: ${status}`,
+              } as never,
+            },
+          ],
+        });
+        return;
+      }
+
+      Alert.alert('Status', `Current payment status: ${status || 'PENDING'}`);
+    } catch (err) {
+      console.error('checkCryptoStatus', err);
+      Alert.alert('Error', 'Unable to check status');
+    } finally {
+      setChecking(false);
+    }
   };
 
   const sendReceiptSms = () => {
     console.info('sendReceiptSms stub — implement SMS API');
-    // simulate success and show final screen
-    navigation.navigate('FinalSuccess' as never, {
-      success: true,
-      chainName,
-      tokenSymbol,
-      tokenAmount,
-      usdAmount,
-      mobile,
-      receivingAddress,
-    } as never);
-  };
-
-  const verifyTransaction = () => {
-    console.info('verifyTransaction stub — open block explorer / call API');
-    // simulate verification success and show final screen
-    navigation.navigate('FinalSuccess' as never, {
-      success: true,
-      chainName,
-      tokenSymbol,
-      tokenAmount,
-      usdAmount,
-      mobile,
-      receivingAddress,
-    } as never);
-  };
-
-  const printReceipt = () => {
-    console.info('printReceipt stub');
-    // simulate success screen after print
-    navigation.navigate('FinalSuccess' as never, {
-      success: true,
-      chainName,
-      tokenSymbol,
-      tokenAmount,
-      usdAmount,
-      mobile,
-      receivingAddress,
-    } as never);
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: 'FinalSuccess' as never,
+          params: {
+            success: true,
+            chainName,
+            tokenSymbol,
+            tokenAmount,
+            usdAmount,
+            mobile,
+            receivingAddress: hosted_url ?? receivingAddress,
+          } as never,
+        },
+      ],
+    });
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Successful Payment</Text>
+        <Text style={styles.header}>Payment</Text>
         <TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] })}>
-          <Text style={styles.logout}>Log Out</Text>
+          <Text style={styles.logout}>Close</Text>
         </TouchableOpacity>
       </View>
 
-      {/* QR area (title only, not a button) */}
       <View style={styles.qrWrap}>
-        <Text style={styles.qrTitle}>Scan QR code to pay</Text>
-        <Image source={require('../../assets/vaadin_qrcode.png')} style={styles.qrImage} resizeMode="contain" />
+        <Text style={styles.qrTitle}>{hosted_url ? 'Checkout QR' : 'Scan QR code to pay'}</Text>
+
+        {hosted_url ? (
+          <Image
+            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(hosted_url)}` }}
+            style={styles.qrImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <Image source={require('../../assets/vaadin_qrcode.png')} style={styles.qrImage} resizeMode="contain" />
+        )}
+
         <View style={styles.addressRow}>
           <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
-            {receivingAddress}
+            {hosted_url ? hosted_url : receivingAddress}
           </Text>
           <TouchableOpacity style={styles.copyBtn} onPress={copyAddress}>
             <Text style={styles.copyText}>Copy</Text>
           </TouchableOpacity>
         </View>
+
+        {hosted_url ? (
+          <View style={{ marginTop: 10, width: '100%', alignItems: 'center' }}>
+            <TouchableOpacity style={styles.primaryBtn} onPress={openCheckout}>
+              <Text style={styles.primaryBtnText}>Open checkout</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkCryptoStatus} disabled={checking}>
+              {checking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Check payment status</Text>}
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
 
       {/* Details card */}
@@ -118,7 +195,7 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.success}>Successful Payment</Text>
         </View>
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={verifyTransaction}>
+        <TouchableOpacity style={styles.primaryBtn}>
           <Text style={styles.primaryBtnText}>Verify transaction on Blockchain</Text>
         </TouchableOpacity>
 
@@ -166,14 +243,14 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
 
         <View style={styles.receiptRow}>
           <Text style={styles.smallLabel}>Receipt</Text>
-          <Text style={styles.txId}>{txId}</Text>
+          <Text style={styles.txId}>{txIdLocal}</Text>
         </View>
 
         <TouchableOpacity style={styles.primaryBtn} onPress={sendReceiptSms}>
           <Text style={styles.primaryBtnText}>Send E-Receipt Via SMS</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.ghostBtn} onPress={printReceipt}>
+        <TouchableOpacity style={styles.ghostBtn}>
           <Text style={styles.ghostText}>Print E-Receipt</Text>
         </TouchableOpacity>
       </View>
@@ -188,7 +265,7 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
             tokenAmount,
             usdAmount,
             mobile,
-            receivingAddress,
+            receivingAddress: hosted_url ?? receivingAddress,
           } as never)
         }
       >
