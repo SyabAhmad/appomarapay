@@ -1,8 +1,8 @@
 import Stripe from 'stripe';
 import axios from 'axios';
-import crypto from 'crypto';
 import Transaction from '../model/Transaction.js';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
@@ -111,13 +111,34 @@ export const createCryptoCharge = async (req, res) => {
 export const getCryptoCharge = async (req, res) => {
   try {
     const chargeId = req.params.id;
-    // fetch latest from Coinbase Commerce
-    const response = await axios.get(`https://api.commerce.coinbase.com/charges/${chargeId}`, {
-      headers: {
-        'X-CC-Api-Key': process.env.COINBASE_API_KEY,
-        'X-CC-Version': '2018-03-22',
-      },
-    });
+
+    // simple retry/backoff for transient network errors (ECONNRESET, ETIMEDOUT)
+    const maxAttempts = 3;
+    let attempt = 0;
+    let response;
+    let lastErr;
+    while (attempt < maxAttempts) {
+      attempt += 1;
+      try {
+        response = await axios.get(`https://api.commerce.coinbase.com/charges/${chargeId}`, {
+          headers: {
+            'X-CC-Api-Key': process.env.COINBASE_API_KEY,
+            'X-CC-Version': '2018-03-22',
+          },
+          timeout: 10000, // 10s
+        });
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        console.warn(`getCryptoCharge attempt ${attempt} failed:`, err.message);
+        // exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100));
+      }
+    }
+
+    if (lastErr) throw lastErr;
+
     const charge = response.data.data;
 
     // update local tx status if present
@@ -159,5 +180,49 @@ export const coinbaseWebhook = async (req, res) => {
   } catch (err) {
     console.error('coinbase webhook error', err);
     res.status(400).send('error');
+  }
+};
+
+export const verifyCryptoCharge = async (req, res) => {
+  try {
+    const chargeId = req.params.id;
+    const response = await axios.get(`https://api.commerce.coinbase.com/charges/${chargeId}`, {
+      headers: {
+        'X-CC-Api-Key': process.env.COINBASE_API_KEY,
+        'X-CC-Version': '2018-03-22',
+      },
+    });
+
+    const charge = response.data?.data;
+    const payments = Array.isArray(charge?.payments) ? charge.payments : [];
+    // statuses treated as final / successful from Coinbase
+    const finalSuccess = ['COMPLETED', 'RESOLVED', 'CONFIRMED', 'SETTLED', 'SUCCESS'];
+    const foundSuccessful = payments.find((p) => finalSuccess.includes((p.status || '').toUpperCase()));
+
+    // derive a status we can record locally
+    const timelineStatus = (charge?.timeline?.slice(-1)[0]?.status || '').toUpperCase();
+    const derivedStatus = foundSuccessful ? 'completed' : (timelineStatus ? timelineStatus.toLowerCase() : 'pending');
+
+    // update local transaction if exists
+    await Transaction.findOneAndUpdate(
+      { providerId: chargeId },
+      { status: derivedStatus, meta: charge },
+      { upsert: false }
+    );
+
+    const localTx = await Transaction.findOne({ providerId: chargeId });
+
+    res.json({
+      success: true,
+      verified: !!foundSuccessful,
+      status: derivedStatus,
+      payments,
+      charge,
+      localTx,
+    });
+  } catch (err) {
+    console.error('verifyCryptoCharge', err?.response?.data || err.message);
+    const message = err?.response?.data || err?.message || 'unknown error';
+    res.status(500).json({ success: false, message });
   }
 };

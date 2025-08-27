@@ -63,16 +63,18 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
     }
     setChecking(true);
     try {
-      const res = await fetch(`${API_BASE}/api/payments/crypto/${chargeId}`);
+      // call the new verify endpoint which inspects Coinbase payments + updates local DB
+      const res = await fetch(`${API_BASE}/api/payments/crypto/${chargeId}/verify`);
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         Alert.alert('Error', body?.message ?? `Status ${res.status}`);
         setChecking(false);
         return;
       }
-      const status = body?.charge?.timeline?.slice(-1)[0]?.status?.toUpperCase() ?? (body?.localTx?.status ?? '').toUpperCase();
+      const verified = !!body?.verified;
+      const status = (body?.status || '').toUpperCase();
 
-      if (status === 'COMPLETED' || status === 'RESOLVED' || status === 'CONFIRMED') {
+      if (verified || status === 'COMPLETED' || status === 'RESOLVED' || status === 'CONFIRMED') {
         navigation.reset({
           index: 0,
           routes: [
