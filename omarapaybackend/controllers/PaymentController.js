@@ -89,7 +89,6 @@ export const createCryptoCharge = async (req, res) => {
       meta: charge,
     });
 
-    // Return minimal fields useful for client (hosted_url to redirect user)
     res.json({
       success: true,
       chargeId: charge.id,
@@ -99,8 +98,15 @@ export const createCryptoCharge = async (req, res) => {
       raw: charge,
     });
   } catch (err) {
-    console.error('createCryptoCharge', err?.response?.data || err.message);
-    res.status(500).json({ success: false, message: err?.response?.data || err.message });
+    const status = err?.response?.status;
+    const message =
+      err?.response?.data?.error?.message ||
+      err?.response?.data?.message ||
+      err?.response?.data ||
+      err?.message ||
+      'unknown error';
+    console.error('createCryptoCharge', status, message);
+    res.status(status || 500).json({ success: false, message });
   }
 };
 

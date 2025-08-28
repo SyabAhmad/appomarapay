@@ -58,7 +58,16 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const usd = Number(selectedAmount ?? '0') || 0;
   const tokenKey = (tokenSymbol ?? '').toUpperCase() || (tokenId ?? '').toUpperCase();
 
-  const [locked, setLocked] = useState(true);
+  // Detect if this is a card payment
+  const isCardPayment = useMemo(() => 
+    (tokenSymbol?.toUpperCase() === 'USD') || 
+    (chainId === 'card') ||
+    (chainName?.toLowerCase().includes('visa') || 
+     chainName?.toLowerCase().includes('master') || 
+     chainName?.toLowerCase().includes('card')),
+  [tokenSymbol, chainId, chainName]);
+
+  const [locked, setLocked] = useState(!isCardPayment); // Card payments start unlocked
   const [rate, setRate] = useState<number | null>(null);
   const [tokenAmount, setTokenAmount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -68,6 +77,14 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const tokenLogo = useMemo(() => getTokenLogo(tokenSymbol, tokenId), [tokenSymbol, tokenId]);
 
   const fetchRate = (showLoading = true) => {
+    // Skip rate calculations for card payments
+    if (isCardPayment) {
+      setLocked(false);
+      setTokenAmount(usd);
+      setLastUpdated(Date.now());
+      return;
+    }
+
     setLocked(true);
     if (showLoading) setLoading(true);
 
@@ -125,47 +142,75 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.amount}>{usd.toFixed(2)}</Text>
           </View>
 
-          <View style={styles.separator} />
+          {!isCardPayment && <View style={styles.separator} />}
 
-          <View style={styles.conversionRow}>
-            <View style={styles.tokenInfo}>
-              <Image source={tokenLogo} style={styles.tokenLogo} resizeMode="contain" />
-              <View style={{ marginLeft: 12 }}>
-                <Text style={styles.tokenSymbol}>{(tokenSymbol ?? tokenId ?? '').toUpperCase() || 'TOKEN'}</Text>
-                <Text style={styles.tokenSub}>{chainName ?? 'Network'}</Text>
+          {/* For crypto payments, show conversion rate */}
+          {!isCardPayment ? (
+            <View style={styles.conversionRow}>
+              <View style={styles.tokenInfo}>
+                <Image source={tokenLogo} style={styles.tokenLogo} resizeMode="contain" />
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={styles.tokenSymbol}>{(tokenSymbol ?? tokenId ?? '').toUpperCase() || 'TOKEN'}</Text>
+                  <Text style={styles.tokenSub}>{chainName ?? 'Network'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.rateBox}>
+                {locked ? (
+                  <View style={styles.lockedWrap}>
+                    <ActivityIndicator size="small" color="#2563eb" />
+                    <Text style={styles.lockedText}>Rate locked</Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.tokenAmount}>{tokenAmount ?? '—'}</Text>
+                    <Text style={styles.rateLine}>
+                      {rate ? `${rate}` : '—'} {tokenSymbol ? tokenSymbol.toUpperCase() : ''}
+                    </Text>
+                    {delta !== null ? (
+                      <Text style={[styles.delta, delta >= 0 ? styles.deltaUp : styles.deltaDown]}>
+                        {delta >= 0 ? `+${delta}%` : `${delta}%`}
+                      </Text>
+                    ) : null}
+                  </>
+                )}
               </View>
             </View>
-
-            <View style={styles.rateBox}>
-              {locked ? (
-                <View style={styles.lockedWrap}>
-                  <ActivityIndicator size="small" color="#2563eb" />
-                  <Text style={styles.lockedText}>Rate locked</Text>
+          ) : (
+            /* For card payments, show simplified payment method info */
+            <View style={styles.cardPaymentInfo}>
+              <View style={styles.separator} />
+              <View style={styles.conversionRow}>
+                <View style={styles.tokenInfo}>
+                  <Image source={require('../../assets/visa.png')} style={styles.tokenLogo} resizeMode="contain" />
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.tokenSymbol}>{chainName ?? 'Card Payment'}</Text>
+                    <Text style={styles.tokenSub}>USD Direct Payment</Text>
+                  </View>
                 </View>
-              ) : (
-                <>
-                  <Text style={styles.tokenAmount}>{tokenAmount ?? '—'}</Text>
-                  <Text style={styles.rateLine}>
-                    {rate ? `${rate}` : '—'} {tokenSymbol ? tokenSymbol.toUpperCase() : ''}
-                  </Text>
-                  {delta !== null ? (
-                    <Text style={[styles.delta, delta >= 0 ? styles.deltaUp : styles.deltaDown]}>
-                      {delta >= 0 ? `+${delta}%` : `${delta}%`}
-                    </Text>
-                  ) : null}
-                </>
-              )}
+                
+                <View style={styles.rateBox}>
+                  <Text style={styles.tokenAmount}>{usd.toFixed(2)} USD</Text>
+                  <Text style={styles.rateLine}>No conversion</Text>
+                </View>
+              </View>
             </View>
-          </View>
+          )}
 
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              {formattedLastUpdated ? `Last updated ${formattedLastUpdated}` : 'Fetching rate…'}
-            </Text>
+            {!isCardPayment ? (
+              <>
+                <Text style={styles.metaText}>
+                  {formattedLastUpdated ? `Last updated ${formattedLastUpdated}` : 'Fetching rate…'}
+                </Text>
 
-            <TouchableOpacity style={styles.refresh} onPress={onRefresh} activeOpacity={0.85}>
-              <Text style={styles.refreshText}>{loading ? 'Refreshing…' : 'Refresh'}</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.refresh} onPress={onRefresh} activeOpacity={0.85}>
+                  <Text style={styles.refreshText}>{loading ? 'Refreshing…' : 'Refresh'}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.metaText}>Card payment - USD direct</Text>
+            )}
           </View>
         </View>
       </View>
@@ -276,6 +321,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmText: { color: '#fff', fontWeight: '800' },
+
+  // Add this style
+  cardPaymentInfo: {
+    marginTop: -16, // negative margin to compensate for the separator margin
+  },
 });
 
 export default ConfirmPayment;

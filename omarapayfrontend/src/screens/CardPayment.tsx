@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, TextInput, Image, InteractionManager } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CardField, useConfirmPayment } from '@stripe/stripe-react-native';
-import { BASE_API_URL } from '@env';
+import { API_BASE } from '../config/env';
 
 type RootStackParamList = {
   CardPayment: {
@@ -19,7 +19,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CardPayment'>;
 
 // use BASE_API_URL later when you centralize config; keep fallback for dev device
 // const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
-const API_BASE = BASE_API_URL;
+// API base configured in src/config/env.ts
 
 const CardPayment: React.FC<Props> = ({ navigation, route }) => {
   const { amount = '0.00', description = '', metadata = {} } = route.params ?? {};
