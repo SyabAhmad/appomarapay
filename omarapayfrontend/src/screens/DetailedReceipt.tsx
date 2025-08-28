@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Platform, ToastAndroid, Linking, ActivityIndicator } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Clipboard from '@react-native-clipboard/clipboard';
-import {BASE_API_URL} from '@env';
+import { API_BASE } from '../config/env';
 type RootStackParamList = {
   DetailedReceipt: {
     chainName?: string;
@@ -22,8 +22,7 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DetailedReceipt'>;
 
-// const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
-const API_BASE = BASE_API_URL
+// API base configured from config/env.ts
 
 const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
   const {
@@ -199,6 +198,77 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const checkCardStatus = async () => {
+    // when receivingAddress is a PaymentIntent id (or tokenSymbol === 'USD' / chainName === 'Card')
+    const paymentIntentId = txId ?? receivingAddress;
+    if (!paymentIntentId) {
+      Alert.alert('No payment id', 'Unable to check card payment status.');
+      return;
+    }
+    setChecking(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/card/${encodeURIComponent(paymentIntentId)}`);
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        Alert.alert('Error', body?.message ?? `Status ${res.status}`);
+        setChecking(false);
+        return;
+      }
+      const status = (body?.status || '').toUpperCase();
+      if (status === 'SUCCEEDED' || status === 'COMPLETED') {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'FinalSuccess' as never,
+              params: {
+                success: true,
+                chainName,
+                tokenSymbol,
+                tokenAmount,
+                usdAmount,
+                mobile,
+                receivingAddress,
+              } as never,
+            },
+          ],
+        });
+        return;
+      }
+      if (['REQUIRES_PAYMENT_METHOD', 'CANCELED', 'REQUIRES_ACTION', 'FAILED', 'REQUIRES_CAPTURE'].includes(status)) {
+        // treat non-success states as failure/needs manual followup
+        Alert.alert('Status', `Payment status: ${status}`);
+        if (status === 'CANCELED' || status === 'FAILED') {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'FinalFailure' as never,
+                params: {
+                  chainName,
+                  tokenSymbol,
+                  tokenAmount,
+                  usdAmount,
+                  mobile,
+                  receivingAddress,
+                  errorMessage: `Payment status: ${status}`,
+                } as never,
+              },
+            ],
+          });
+          return;
+        }
+      } else {
+        Alert.alert('Status', `Current payment status: ${status || 'PENDING'}`);
+      }
+    } catch (err) {
+      console.error('checkCardStatus', err);
+      Alert.alert('Error', 'Unable to check card payment status');
+    } finally {
+      setChecking(false);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
@@ -209,9 +279,9 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       <View style={styles.qrWrap}>
-        <Text style={styles.qrTitle}>{hosted_url ? 'Checkout QR' : 'Scan QR code to pay'}</Text>
+  <Text style={styles.qrTitle}>{hosted_url ? 'Checkout QR' : 'Receipt / Payment details'}</Text>
 
-        {hosted_url ? (
+  {hosted_url ? (
           <Image
             source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(hosted_url)}` }}
             style={styles.qrImage}
@@ -240,7 +310,14 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
               {checking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Check payment status</Text>}
             </TouchableOpacity>
           </View>
-        ) : null}
+        ) : (
+          // When there's no hosted_url, assume card flow and offer a card status check
+          <View style={{ marginTop: 10, width: '100%', alignItems: 'center' }}>
+            <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkCardStatus} disabled={checking}>
+              {checking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Check card payment status</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Details card */}
@@ -250,9 +327,11 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.success}>Successful Payment</Text>
         </View>
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={verifyOnChain} disabled={verifyingChain}>
-          {verifyingChain ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Verify transaction on Blockchain</Text>}
-        </TouchableOpacity>
+        {hosted_url ? (
+          <TouchableOpacity style={styles.primaryBtn} onPress={verifyOnChain} disabled={verifyingChain}>
+            {verifyingChain ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Verify transaction on Blockchain</Text>}
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity style={styles.ghostBtn} onPress={() => navigation.navigate('PaymentMethod' as never)}>
           <Text style={styles.ghostText}>New transaction</Text>
@@ -313,15 +392,23 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
       <TouchableOpacity
         style={styles.doneBtn}
         onPress={() =>
-          navigation.navigate('FinalSuccess' as never, {
-            success: true,
-            chainName,
-            tokenSymbol,
-            tokenAmount,
-            usdAmount,
-            mobile,
-            receivingAddress: hosted_url ?? receivingAddress,
-          } as never)
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'FinalSuccess' as never,
+                params: {
+                  success: true,
+                  chainName,
+                  tokenSymbol,
+                  tokenAmount,
+                  usdAmount,
+                  mobile,
+                  receivingAddress: hosted_url ?? receivingAddress,
+                } as never,
+              },
+            ],
+          })
         }
       >
         <Text style={styles.doneText}>Done</Text>

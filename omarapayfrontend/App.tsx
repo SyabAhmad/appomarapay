@@ -9,7 +9,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StripeProvider } from '@stripe/stripe-react-native';
-import {STRIPE_PUBLISHABLE_KEY} from '@env';
+import { STRIPE_PUBLISHABLE_KEY } from './src/config/env';
 // screens used in your flow
 import AuthGate from './src/screens/AuthGate';
 import PinAuth from './src/screens/PinAuth';
@@ -77,7 +77,7 @@ function App(): React.JSX.Element {
               <Stack.Screen name="AuthGate" component={AuthGate} />
               <Stack.Screen name="PinAuth" component={PinAuth} />
               {/* <Stack.Screen name="Login" component={Login} />
-              <Stack.Screen name="Signup" component={Signup} /> */}
+              <Stack.Screen name="Signup" component={Signup} */}
               <Stack.Screen name="Home" component={Home} />
               <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
               <Stack.Screen name="BlockchainMethod" component={BlockchainMethod} />

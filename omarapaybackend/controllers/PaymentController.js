@@ -1,9 +1,10 @@
 import Stripe from 'stripe';
-import axios from 'axios';
 import Transaction from '../model/Transaction.js';
 import dotenv from 'dotenv';
-import { ethers } from 'ethers';
 dotenv.config();
+import axios from 'axios';
+import crypto from 'crypto';
+import { ethers } from 'ethers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
 
@@ -324,5 +325,29 @@ export const verifyCryptoOnChain = async (req, res) => {
   } catch (err) {
     console.error('verifyCryptoOnChain', err?.response?.data || err.message || err);
     res.status(500).json({ success: false, message: err?.response?.data || err?.message || 'unknown' });
+  }
+};
+
+export const getCardPayment = async (req, res) => {
+  try {
+    const paymentIntentId = req.params.id;
+    if (!paymentIntentId) return res.status(400).json({ success: false, message: 'Missing id' });
+
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // derive a friendly status
+    const status = (pi?.status || 'unknown').toLowerCase(); // 'succeeded', 'requires_payment_method', 'requires_capture', etc.
+
+    // optional: update local Transaction if you store it with providerId = paymentIntentId
+    await Transaction.findOneAndUpdate(
+      { providerId: paymentIntentId },
+      { status: status === 'succeeded' ? 'completed' : status, meta: pi },
+      { upsert: false }
+    );
+
+    return res.json({ success: true, status, paymentIntent: pi });
+  } catch (err) {
+    console.error('getCardPayment error', err?.response?.data || err?.message || err);
+    return res.status(500).json({ success: false, message: err?.message || 'internal' });
   }
 };
