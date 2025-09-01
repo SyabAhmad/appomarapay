@@ -1,24 +1,17 @@
 import express from 'express';
-import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
-import connectDB from './config/db.js';
-import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 
-dotenv.config();
-
 const app = express();
-connectDB();
 
-// parse JSON for normal routes
+// Raw body only for webhook routes
+app.post('/api/payments/webhook/stripe', bodyParser.raw({ type: 'application/json' }));
+app.post('/api/payments/webhook/coinbase', bodyParser.raw({ type: 'application/json' }));
+
+// JSON for the rest
 app.use(express.json());
 
-// expose raw body for webhook endpoints (Stripe / Coinbase)
-app.use('/api/payments/webhook/stripe', bodyParser.raw({ type: 'application/json' }));
-app.use('/api/payments/webhook/coinbase', bodyParser.raw({ type: 'application/json' }));
-
-// mount API routes
-app.use('/api/users', userRoutes);
+// mount routes (ensure the webhook paths above match routes)
 app.use('/api/payments', paymentRoutes);
 
 // quick health check

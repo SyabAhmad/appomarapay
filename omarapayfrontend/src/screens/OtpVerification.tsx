@@ -28,6 +28,11 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
   const [generatedOtp, setGeneratedOtp] = useState<string>('');
 
   const isCard = useMemo(() => (tokenSymbol?.toUpperCase() === 'USD') || (chainId === 'card'), [tokenSymbol, chainId]);
+  const isGCash = useMemo(() => {
+    const n = (chainName || '').toLowerCase();
+    const s = (tokenSymbol || '').toLowerCase();
+    return chainId === 'gcash' || n.includes('gcash') || n.includes('google pay') || s.includes('gcash') || s.includes('gpay');
+  }, [chainId, chainName, tokenSymbol]);
 
   // Generate a dummy OTP for testing (or use provided otp)
   useEffect(() => {
@@ -63,6 +68,54 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
           },
         ],
       });
+      return;
+    }
+
+    if (isGCash) {
+      // Create a GCash payment/checkout on backend
+      setVerifying(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/payments/gcash`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: String(Number(selectedAmount || '0').toFixed(2)),
+            currency: 'USD',
+            description: `GCash charge ${selectedAmount} USD`,
+            metadata: { phone, chainName: chainName ?? 'GCash', tokenSymbol: 'GCASH' },
+          }),
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok || !body?.success) {
+          const msg = body?.message || `Failed (${res.status}) to create GCash charge`;
+          Alert.alert('GCash error', msg);
+          setVerifying(false);
+          return;
+        }
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'DetailedReceipt' as never,
+              params: {
+                chainName: chainName ?? 'GCash',
+                tokenSymbol: 'USD',
+                tokenAmount: undefined,
+                usdAmount: selectedAmount,
+                mobile: phone,
+                receivingAddress: body?.hosted_url ?? body?.reference ?? body?.id ?? '-',
+                hosted_url: body?.hosted_url ?? null,
+                chargeId: body?.id ?? null,
+                txId: body?.id ?? null,
+              } as never,
+            },
+          ],
+        });
+      } catch (err: any) {
+        Alert.alert('Network error', err?.message ?? 'Unable to create GCash payment');
+      } finally {
+        setVerifying(false);
+      }
       return;
     }
 

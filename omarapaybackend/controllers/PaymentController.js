@@ -357,3 +357,147 @@ export const getCardPayment = async (req, res) => {
     return res.status(500).json({ success: false, message: err?.message || 'internal' });
   }
 };
+
+// Simple in-memory store for demo (replace with DB/provider later)
+const gcashMemory = new Map(); // id -> { status, hosted_url, amount, currency, ... }
+
+// Helper: pick provider
+const hasXendit = !!process.env.XENDIT_SECRET_KEY;
+const hasPayMongo = !!process.env.PAYMONGO_SECRET_KEY;
+
+export const createGcashPayment = async (req, res) => {
+  try {
+    const { amount = '0.00', currency = 'USD', description = '', metadata = {} } = req.body || {};
+
+    // IMPORTANT: GCash providers expect PHP. Convert your amount to PHP before going live.
+    // For now we forward as-is; you should replace this with your own USD->PHP conversion.
+    const phpAmount = Math.round(Number(amount) * 100); // centavos
+
+    const successUrl = process.env.GCASH_SUCCESS_URL || 'https://appomarapay-production.up.railway.app/success';
+    const failUrl = process.env.GCASH_FAILURE_URL || 'https://appomarapay-production.up.railway.app/failed';
+
+    if (hasXendit) {
+      // XENDIT eWallet charge (GCASH)
+      const reference_id = `gc_${crypto.randomBytes(6).toString('hex')}`;
+      const payload = {
+        reference_id,
+        currency: 'PHP',
+        amount: phpAmount, // Xendit expects integer amount; confirm your currency minor unit.
+        channel_code: 'GCASH',
+        channel_properties: {
+          success_redirect_url: successUrl,
+          failure_redirect_url: failUrl,
+        },
+        metadata: { ...metadata, description },
+      };
+
+      const resp = await axios.post('https://api.xendit.co/ewallets/charges', payload, {
+        auth: { username: process.env.XENDIT_SECRET_KEY, password: '' },
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = resp.data;
+      const hosted_url =
+        data?.actions?.mobile_web_checkout_url ||
+        data?.actions?.desktop_web_checkout_url ||
+        data?.checkout_url ||
+        null;
+
+      return res.json({
+        success: true,
+        id: data?.id || reference_id,
+        hosted_url,
+        status: (data?.status || 'PENDING').toLowerCase(),
+      });
+    }
+
+    if (hasPayMongo) {
+      // PAYMONGO source (GCASH)
+      const payload = {
+        data: {
+          attributes: {
+            amount: phpAmount, // centavos
+            currency: 'PHP',
+            type: 'gcash',
+            redirect: { success: successUrl, failed: failUrl },
+            metadata: { ...metadata, description },
+          },
+        },
+      };
+
+      const base64Key = Buffer.from(`${process.env.PAYMONGO_SECRET_KEY}:`).toString('base64');
+      const resp = await axios.post('https://api.paymongo.com/v1/sources', payload, {
+        headers: {
+          Authorization: `Basic ${base64Key}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const src = resp.data?.data;
+      const hosted_url = src?.attributes?.redirect?.checkout_url || null;
+
+      return res.json({
+        success: true,
+        id: src?.id,
+        hosted_url,
+        status: (src?.attributes?.status || 'pending').toLowerCase(),
+      });
+    }
+
+    // Fallback: mock (kept for testing)
+    const id = `gc_${crypto.randomBytes(6).toString('hex')}`;
+    const hosted_url =
+      process.env.GCASH_HOSTED_URL_BASE
+        ? `${process.env.GCASH_HOSTED_URL_BASE}?ref=${id}&amount=${encodeURIComponent(amount)}&currency=${currency}`
+        : `https://pay.gcash.com/app/pay?ref=${id}&amount=${encodeURIComponent(amount)}&currency=${currency}`;
+
+    const record = { status: 'pending', amount, currency, description, metadata, hosted_url, createdAt: Date.now() };
+    gcashMemory.set(id, record);
+    return res.json({ success: true, id, hosted_url, status: record.status });
+  } catch (err) {
+    console.error('createGcashPayment', err?.response?.data || err?.message || err);
+    res.status(err?.response?.status || 500).json({ success: false, message: err?.response?.data || err?.message || 'internal' });
+  }
+};
+
+export const getGcashStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, message: 'missing id' });
+
+    if (hasXendit) {
+      const resp = await axios.get(`https://api.xendit.co/ewallets/charges/${id}`, {
+        auth: { username: process.env.XENDIT_SECRET_KEY, password: '' },
+      });
+      const data = resp.data;
+      const status = (data?.status || 'PENDING').toLowerCase();
+      const hosted_url =
+        data?.actions?.mobile_web_checkout_url ||
+        data?.actions?.desktop_web_checkout_url ||
+        data?.checkout_url ||
+        null;
+
+      return res.json({ success: true, status, hosted_url });
+    }
+
+    if (hasPayMongo) {
+      const base64Key = Buffer.from(`${process.env.PAYMONGO_SECRET_KEY}:`).toString('base64');
+      const resp = await axios.get(`https://api.paymongo.com/v1/sources/${id}`, {
+        headers: { Authorization: `Basic ${base64Key}` },
+      });
+      const src = resp.data?.data;
+      const status = (src?.attributes?.status || 'pending').toLowerCase();
+      const hosted_url = src?.attributes?.redirect?.checkout_url || null;
+
+      return res.json({ success: true, status, hosted_url });
+    }
+
+    // Fallback: mock memory
+    const rec = gcashMemory.get(id);
+    if (!rec) return res.status(404).json({ success: false, message: 'not found' });
+    return res.json({ success: true, status: rec.status, hosted_url: rec.hosted_url, amount: rec.amount, currency: rec.currency });
+  } catch (err) {
+    console.error('getGcashStatus', err?.response?.data || err?.message || err);
+    res.status(err?.response?.status || 500).json({ success: false, message: err?.response?.data || err?.message || 'internal' });
+  }
+};

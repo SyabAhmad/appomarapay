@@ -59,15 +59,24 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const tokenKey = (tokenSymbol ?? '').toUpperCase() || (tokenId ?? '').toUpperCase();
 
   // Detect if this is a card payment
-  const isCardPayment = useMemo(() => 
-    (tokenSymbol?.toUpperCase() === 'USD') || 
+  const isCardPayment = useMemo(() =>
+    (tokenSymbol?.toUpperCase() === 'USD') ||
     (chainId === 'card') ||
-    (chainName?.toLowerCase().includes('visa') || 
-     chainName?.toLowerCase().includes('master') || 
+    (chainName?.toLowerCase().includes('visa') ||
+     chainName?.toLowerCase().includes('master') ||
      chainName?.toLowerCase().includes('card')),
   [tokenSymbol, chainId, chainName]);
 
-  const [locked, setLocked] = useState(!isCardPayment); // Card payments start unlocked
+  // Detect if this is a GCash (or similar e-wallet) payment — treat as fiat, no conversion
+  const isGCash = useMemo(() => {
+    const n = (chainName || '').toLowerCase();
+    const s = (tokenSymbol || '').toLowerCase();
+    return chainId === 'gcash' || n.includes('gcash') || n.includes('google pay') || s.includes('gcash') || s.includes('gpay');
+  }, [chainId, chainName, tokenSymbol]);
+
+  const isFiatFlow = isCardPayment || isGCash;
+
+  const [locked, setLocked] = useState(!isFiatFlow); // Fiat (card/gcash) start unlocked
   const [rate, setRate] = useState<number | null>(null);
   const [tokenAmount, setTokenAmount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -77,8 +86,8 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const tokenLogo = useMemo(() => getTokenLogo(tokenSymbol, tokenId), [tokenSymbol, tokenId]);
 
   const fetchRate = (showLoading = true) => {
-    // Skip rate calculations for card payments
-    if (isCardPayment) {
+    // Skip rate calculations for fiat (card/gcash)
+    if (isFiatFlow) {
       setLocked(false);
       setTokenAmount(usd);
       setLastUpdated(Date.now());
@@ -142,10 +151,10 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.amount}>{usd.toFixed(2)}</Text>
           </View>
 
-          {!isCardPayment && <View style={styles.separator} />}
+          {!isFiatFlow && <View style={styles.separator} />}
 
           {/* For crypto payments, show conversion rate */}
-          {!isCardPayment ? (
+          {!isFiatFlow ? (
             <View style={styles.conversionRow}>
               <View style={styles.tokenInfo}>
                 <Image source={tokenLogo} style={styles.tokenLogo} resizeMode="contain" />
@@ -177,14 +186,22 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
               </View>
             </View>
           ) : (
-            /* For card payments, show simplified payment method info */
+            /* For fiat (card/gcash), show simplified payment method info */
             <View style={styles.cardPaymentInfo}>
               <View style={styles.separator} />
               <View style={styles.conversionRow}>
                 <View style={styles.tokenInfo}>
-                  <Image source={require('../../assets/visa.png')} style={styles.tokenLogo} resizeMode="contain" />
+                  <Image
+                    source={
+                      isCardPayment
+                        ? require('../../assets/visa.png')
+                        : require('../../assets/logo.png') // replace with gcash icon if you add one
+                    }
+                    style={styles.tokenLogo}
+                    resizeMode="contain"
+                  />
                   <View style={{ marginLeft: 12 }}>
-                    <Text style={styles.tokenSymbol}>{chainName ?? 'Card Payment'}</Text>
+                    <Text style={styles.tokenSymbol}>{chainName ?? (isCardPayment ? 'Card Payment' : 'GCash')}</Text>
                     <Text style={styles.tokenSub}>USD Direct Payment</Text>
                   </View>
                 </View>
@@ -198,18 +215,17 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
           )}
 
           <View style={styles.metaRow}>
-            {!isCardPayment ? (
+            {!isFiatFlow ? (
               <>
                 <Text style={styles.metaText}>
                   {formattedLastUpdated ? `Last updated ${formattedLastUpdated}` : 'Fetching rate…'}
                 </Text>
-
                 <TouchableOpacity style={styles.refresh} onPress={onRefresh} activeOpacity={0.85}>
                   <Text style={styles.refreshText}>{loading ? 'Refreshing…' : 'Refresh'}</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              <Text style={styles.metaText}>Card payment - USD direct</Text>
+              <Text style={styles.metaText}>{isCardPayment ? 'Card payment - USD direct' : 'GCash payment - USD direct'}</Text>
             )}
           </View>
         </View>

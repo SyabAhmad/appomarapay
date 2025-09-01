@@ -1,31 +1,33 @@
 import express from 'express';
 import {
   createCardPayment,
+  getCardPayment,
   stripeWebhook,
   createCryptoCharge,
-  coinbaseWebhook,
   getCryptoCharge,
   verifyCryptoCharge,
   verifyCryptoOnChain,
-  getCardPayment, // <- add this
+  coinbaseWebhook,
+  createGcashPayment,
+  getGcashStatus,
 } from '../controllers/PaymentController.js';
 
 const router = express.Router();
 
-// normal JSON endpoints
+// Card (Stripe)
 router.post('/card', createCardPayment);
+router.get('/card/:id', getCardPayment);
+router.post('/webhook/stripe', stripeWebhook);
+
+// Crypto (Coinbase Commerce)
 router.post('/crypto', createCryptoCharge);
 router.get('/crypto/:id', getCryptoCharge);
-
-// verification endpoints
 router.get('/crypto/:id/verify', verifyCryptoCharge);
 router.get('/crypto/:id/verify-onchain', verifyCryptoOnChain);
-
-// card status endpoint
-router.get('/card/:id', getCardPayment);
-
-// webhooks (raw body)
-router.post('/webhook/stripe', stripeWebhook);
 router.post('/webhook/coinbase', coinbaseWebhook);
+
+// GCash (Xendit/PayMongo/mock)
+router.post('/gcash', createGcashPayment);
+router.get('/gcash/:id', getGcashStatus);
 
 export default router;

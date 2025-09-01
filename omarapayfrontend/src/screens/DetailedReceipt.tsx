@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Platform, ToastAndroid, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Alert, Platform, ToastAndroid, Linking, ActivityIndicator, TouchableOpacity } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { API_BASE } from '../config/env';
@@ -55,6 +55,18 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
     if (!url) return;
     const ok = await Linking.canOpenURL(url);
     if (ok) Linking.openURL(url);
+  };
+
+  const openHosted = async () => {
+    const url = (route.params as any)?.hosted_url;
+    if (!url) return;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) await Linking.openURL(url);
+      else Alert.alert('Cannot open link', url);
+    } catch (e: any) {
+      Alert.alert('Open failed', e?.message ?? 'Unable to open link');
+    }
   };
 
   const checkCryptoStatus = async () => {
@@ -269,6 +281,67 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const checkGcashStatus = async () => {
+    const id = (route.params as any)?.chargeId || (route.params as any)?.txId;
+    if (!id) {
+      Alert.alert('Missing id', 'Cannot check GCash status');
+      return;
+    }
+    try {
+      setChecking?.(true);
+    } catch {}
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/gcash/${encodeURIComponent(id)}`);
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        Alert.alert('Error', body?.message ?? `Status ${res.status}`);
+        return;
+      }
+      const status = String(body?.status || '').toLowerCase();
+      if (status === 'succeeded' || status === 'paid' || status === 'completed') {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'FinalSuccess' as never,
+              params: {
+                success: true,
+                chainName: (route.params as any)?.chainName ?? 'GCash',
+                tokenSymbol: 'USD',
+                tokenAmount: (route.params as any)?.tokenAmount ?? undefined,
+                usdAmount: (route.params as any)?.usdAmount ?? '0.00',
+                mobile: (route.params as any)?.mobile ?? '-',
+                receivingAddress: (route.params as any)?.receivingAddress ?? '-',
+              } as never,
+            },
+          ],
+        });
+      } else if (status === 'failed' || status === 'canceled') {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'FinalFailure' as never,
+              params: {
+                chainName: (route.params as any)?.chainName ?? 'GCash',
+                tokenSymbol: 'USD',
+                usdAmount: (route.params as any)?.usdAmount ?? '0.00',
+                mobile: (route.params as any)?.mobile ?? '-',
+                errorMessage: `Payment ${status}`,
+              } as never,
+            },
+          ],
+        });
+      } else {
+        Alert.alert('Status', `Payment status: ${status || 'pending'}`);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Unable to check status');
+    } finally {
+      try { setChecking?.(false); } catch {}
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
@@ -300,12 +373,22 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
+        {/* If hosted_url exists (GCash/crypto), show an open button */}
+        {(route.params as any)?.hosted_url ? (
+          <TouchableOpacity style={styles.primaryBtn} onPress={openHosted}>
+            <Text style={styles.primaryBtnText}>Open checkout</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {/* GCash check status button */}
+        {((route.params as any)?.chainName || '').toString().toLowerCase().includes('gcash') ? (
+          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkGcashStatus}>
+            <Text style={styles.primaryBtnText}>Check GCash status</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {hosted_url ? (
           <View style={{ marginTop: 10, width: '100%', alignItems: 'center' }}>
-            <TouchableOpacity style={styles.primaryBtn} onPress={openCheckout}>
-              <Text style={styles.primaryBtnText}>Open checkout</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkCryptoStatus} disabled={checking}>
               {checking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Check payment status</Text>}
             </TouchableOpacity>
