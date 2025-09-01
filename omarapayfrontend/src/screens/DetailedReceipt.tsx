@@ -415,44 +415,16 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
 
         {/* GCash check status button */}
         {((route.params as any)?.chainName || '').toString().toLowerCase().includes('gcash') ? (
-          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkGcashStatus}>
-            <Text style={styles.primaryBtnText}>Check GCash status</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {hosted_url ? (
-          <View style={{ marginTop: 10, width: '100%', alignItems: 'center' }}>
-            <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkCryptoStatus} disabled={checking}>
-              {checking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Check payment status</Text>}
-            </TouchableOpacity>
-          </View>
-        ) : (
-          // When there's no hosted_url, assume card flow and offer a card status check
-          <View style={{ marginTop: 10, width: '100%', alignItems: 'center' }}>
-            <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkCardStatus} disabled={checking}>
-              {checking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Check card payment status</Text>}
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Google Wallet check status button */}
-        {((route.params as any)?.chainName || '').toString().toLowerCase().includes('google wallet') ? (
-          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkGoogleWalletStatus}>
-            <Text style={styles.primaryBtnText}>Check Google Wallet status</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      {/* Details card */}
-      <View style={styles.card}>
-        <View style={styles.topBadge}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          <Text style={styles.success}>Successful Payment</Text>
-        </View>
-
-        {hosted_url ? (
-          <TouchableOpacity style={styles.primaryBtn} onPress={verifyOnChain} disabled={verifyingChain}>
-            {verifyingChain ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Verify transaction on Blockchain</Text>}
+          <TouchableOpacity
+            style={[styles.primaryBtn, { marginTop: 8 }]}
+            onPress={checkGcashStatus}
+            disabled={checking}
+          >
+            {checking ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryBtnText}>Check GCash status</Text>
+            )}
           </TouchableOpacity>
         ) : null}
 

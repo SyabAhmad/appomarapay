@@ -58,7 +58,8 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
-    if (isCard) {
+    // Treat Google Wallet like card (Stripe PaymentSheet with Google Pay)
+    if (isCard || isGoogleWallet) {
       // Route to Stripe card screen; do not create crypto checkout
       navigation.reset({
         index: 0,
@@ -68,8 +69,10 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
             params: {
               amount: selectedAmount,
               currency: 'usd',
-              description: `Payment for ${chainName ?? 'Card'}`,
-              metadata: { phone, chainName, tokenSymbol: 'USD' },
+              description: `Payment for ${chainName ?? (isGoogleWallet ? 'Google Wallet' : 'Card')}`,
+              metadata: { phone, chainName, tokenSymbol: 'USD', channel: isGoogleWallet ? 'googlewallet' : 'card' },
+              // helper flag so UI text says "Google Wallet" instead of "Google Pay"
+              googleWallet: isGoogleWallet === true,
             } as never,
           },
         ],
@@ -119,52 +122,6 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
         });
       } catch (err: any) {
         Alert.alert('Network error', err?.message ?? 'Unable to create GCash payment');
-      } finally {
-        setVerifying(false);
-      }
-      return;
-    }
-
-    if (isGoogleWallet) {
-      setVerifying(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/payments/googlewallet`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: String(Number(selectedAmount || '0').toFixed(2)),
-            currency: 'USD',
-            description: `Google Wallet charge ${selectedAmount} USD`,
-            metadata: { phone, chainName: chainName ?? 'Google Wallet', tokenSymbol: 'USD' },
-          }),
-        });
-        const body = await res.json().catch(() => null);
-        if (!res.ok || !body?.success) {
-          Alert.alert('Google Wallet error', body?.message || `Failed (${res.status}) to create payment`);
-          setVerifying(false);
-          return;
-        }
-        navigation.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'DetailedReceipt' as never,
-              params: {
-                chainName: chainName ?? 'Google Wallet',
-                tokenSymbol: 'USD',
-                tokenAmount: undefined,
-                usdAmount: selectedAmount,
-                mobile: phone,
-                receivingAddress: body?.hosted_url ?? body?.id ?? '-',
-                hosted_url: body?.hosted_url ?? null,
-                chargeId: body?.id ?? null,
-                txId: body?.id ?? null,
-              } as never,
-            },
-          ],
-        });
-      } catch (err: any) {
-        Alert.alert('Network error', err?.message ?? 'Unable to create Google Wallet payment');
       } finally {
         setVerifying(false);
       }

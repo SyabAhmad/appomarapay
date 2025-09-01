@@ -41,7 +41,7 @@ const GCashMethod: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               key={w.id}
               style={styles.walletCard}
-              onPress={() => navigation.navigate('GCashDetails' as never, { walletId: w.id, walletName: w.name } as never)}
+              onPress={() => navigation.navigate('AmountEntry' as never, { chainId: w.id, chainName: w.name, tokenId: w.id, tokenSymbol: w.name } as never)}
               activeOpacity={0.9}
             >
               <Text style={styles.walletEmoji}>{w.emoji}</Text>

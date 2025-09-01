@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
@@ -13,10 +13,17 @@ const GCashDetails: React.FC<Props> = ({ navigation, route }) => {
   const walletId = route.params?.walletId ?? 'gcash';
   const walletName = route.params?.walletName ?? 'Wallet';
 
-  const [phone, setPhone] = useState('');
-  const [reference, setReference] = useState('');
-
-  const canProceed = phone.trim().length >= 6;
+  const proceed = () => {
+    navigation.navigate(
+      'AmountEntry' as never,
+      {
+        chainId: walletId,
+        chainName: walletName,
+        tokenId: walletId,
+        tokenSymbol: walletName,
+      } as never
+    );
+  };
 
   return (
     <View style={styles.safe}>
@@ -27,21 +34,12 @@ const GCashDetails: React.FC<Props> = ({ navigation, route }) => {
           <View style={{ width: 88 }} />
         </View>
 
-        <Text style={styles.helper}>Enter wallet details</Text>
+        {/* Info only — phone will be collected on PhoneConfirmation */}
+        <Text style={styles.helper}>
+          You’ll enter the customer’s phone and verify OTP on the next step.
+        </Text>
 
-        <TextInput placeholder="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={styles.input} />
-        <TextInput placeholder="Reference (optional)" value={reference} onChangeText={setReference} style={styles.input} />
-
-        <TouchableOpacity
-          style={[styles.proceedBtn, !canProceed ? { opacity: 0.6 } : null]}
-          disabled={!canProceed}
-          onPress={() =>
-            navigation.navigate(
-              'AmountEntry' as never,
-              { chainId: 'gcash', chainName: walletName, tokenId: walletId, tokenSymbol: walletName } as never
-            )
-          }
-        >
+        <TouchableOpacity style={styles.proceedBtn} onPress={proceed} activeOpacity={0.9}>
           <Text style={styles.proceedText}>Enter amount</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -55,9 +53,8 @@ const styles = StyleSheet.create({
   topRow: { width: '100%', maxWidth: 560, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   back: { color: '#2563eb', fontWeight: '800' },
   topTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
-  helper: { color: '#6b7280', marginBottom: 12, textAlign: 'center' },
-  input: { width: '100%', maxWidth: 560, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e6eef8', backgroundColor: '#fff', marginBottom: 12 },
-  proceedBtn: { marginTop: 14, width: '100%', maxWidth: 560, backgroundColor: '#2563eb', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  helper: { color: '#6b7280', marginBottom: 16, textAlign: 'center' },
+  proceedBtn: { marginTop: 8, width: '100%', maxWidth: 560, backgroundColor: '#2563eb', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   proceedText: { color: '#fff', fontWeight: '800' },
 });
 
