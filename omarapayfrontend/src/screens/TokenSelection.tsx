@@ -9,18 +9,42 @@ type RootStackParamList = {
 type Props = NativeStackScreenProps<RootStackParamList, 'TokenSelection'>;
 
 const TOKENS_BY_CHAIN: Record<string, Array<{ id: string; symbol: string; name: string; logo?: any }>> = {
-  ethereum: [
-    { id: 'eth', symbol: 'ETH', name: 'Ether', logo: require('../../assets/Etherum.png') },
-    { id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../assets/USD Coin.png') },
-    { id: 'wbtc', symbol: 'WBTC', name: 'Wrapped BTC', logo: require('../../assets/Bitcoin.png') },
+  Ethereum: [
+    { id: 'Ethereum', symbol: 'ETH', name: 'Ethereum', logo: require('../../assets/Ethereum.png') },
+    { id: 'Tether', symbol: 'T', name: 'Tether', logo: require('../../assets/Tether.png') },
+    { id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../assets/USDCoin.png') },
+    { id: 'chainlink', symbol: 'LINK', name: 'Chainlink', logo: require('../../assets/Chainlink.png') },
+    { id: 'dai', symbol: 'DAI', name: 'Dai', logo: require('../../assets/Dai.png') },
+    { id: 'usdfx', symbol: 'usdfx', name: 'usdfx', logo: require('../../assets/USDFX.png') },
   ],
-  bitcoin: [{ id: 'btc', symbol: 'BTC', name: 'Bitcoin', logo: require('../../assets/Bitcoin.png') }],
-  polygon: [
+  Bitcoin: [{ id: 'btc', symbol: 'BTC', name: 'Bitcoin', logo: require('../../assets/Bitcoin.png') }],
+  BNBSmartChain: [
+    { id: 'bnb', symbol: 'BNB', name: 'BNB', logo: require('../../assets/Bnb.png') },
+    { id: 'Tether', symbol: 'Tether', name: 'Tether', logo: require('../../assets/Tether.png') },
+    { id: 'BUSD', symbol: 'BUSD', name: 'BUSD', logo: require('../../assets/BUSD.png') },
+  ],
+  Polygon: [
     { id: 'matic', symbol: 'MATIC', name: 'Polygon', logo: require('../../assets/Matic.png') },
-    { id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../assets/USD Coin.png') },
+    { id: 'Tether', symbol: 'tether', name: 'Tether', logo: require('../../assets/Tether.png') },
+    { id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../assets/USDCoin.png') },
+  ],
+  Arbitrum: [
+    
+    { id: 'Ethereum', symbol: 'ethereum', name: 'Ethereum', logo: require('../../assets/Ethereum.png') },
+    { id: 'Arbitrum', symbol: 'ARB', name: 'Arbitrum', logo: require('../../assets/Arbitrum.png') },
+    { id: 'Tether', symbol: 'tether', name: 'Tether', logo: require('../../assets/Tether.png') },
+  ],
+  Polkadot: [
+    { id: 'Polkadot', symbol: 'DOT', name: 'Polkadot', logo: require('../../assets/Polkadot.png') },
+  ],
+  Tron: [
+    { id: 'Tron', symbol: 'TRX', name: 'Tron', logo: require('../../assets/Tron.png') },
+  ],
+  NearProtocol: [
+    { id: 'Near Protocol', symbol: 'NEAR', name: 'Near Protocol', logo: require('../../assets/NearProtocol.png') },
   ],
   // fallback
-  default: [{ id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../assets/USD Coin.png') }],
+  default: [{ id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../assets/USDCoin.png') }],
 };
 
 const TokenSelection: React.FC<Props> = ({ navigation, route }) => {

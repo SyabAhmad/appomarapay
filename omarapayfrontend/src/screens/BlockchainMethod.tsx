@@ -19,18 +19,14 @@ const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
 
   // use asset logos where available, fallback to app logo for missing images
   const chains = [
-    { id: 'ethereum', name: 'Ethereum', logo: require('../../assets/Etherum.png') },
-    { id: 'bitcoin', name: 'Bitcoin', logo: require('../../assets/Bitcoin.png') },
-    { id: 'solana', name: 'Solana', logo: require('../../assets/logo.png') },
-    { id: 'polygon', name: 'Polygon', logo: require('../../assets/Polygon.png') },
-    { id: 'avalanche', name: 'Avalanche', logo: require('../../assets/logo.png') },
-    { id: 'fantom', name: 'Fantom', logo: require('../../assets/logo.png') },
-    { id: 'optimism', name: 'Optimism', logo: require('../../assets/logo.png') },
-    { id: 'arbitrum', name: 'Arbitrum', logo: require('../../assets/Arbitrum.png') },
-    { id: 'bsc', name: 'BNB Chain', logo: require('../../assets/Bnb.png') },
-    { id: 'near', name: 'NEAR', logo: require('../../assets/Near Protocol.png') },
-    { id: 'polkadot', name: 'Polkadot', logo: require('../../assets/Polkadot.png') },
-    { id: 'tron', name: 'Tron', logo: require('../../assets/Tron.png') },
+    { id: 'Bitcoin', name: 'Bitcoin', logo: require('../../assets/Bitcoin.png') },
+    { id: 'Ethereum', name: 'Ethereum', logo: require('../../assets/Ethereum.png') },
+    { id: 'BNBSmartChain', name: 'BNBSmartChain', logo: require('../../assets/BNBSmartChain.png') },
+    { id: 'Polygon', name: 'Polygon', logo: require('../../assets/Polygon.png') },
+    { id: 'Arbitrum', name: 'Arbitrum', logo: require('../../assets/Arbitrum.png') },
+    { id: 'Polkadot', name: 'Polkadot', logo: require('../../assets/Polkadot.png') },
+    { id: 'Tron', name: 'Tron', logo: require('../../assets/Tron.png') },
+    { id: 'NearProtocol', name: 'NearProtocol', logo: require('../../assets/NearProtocol.png') },
   ];
 
   return (
