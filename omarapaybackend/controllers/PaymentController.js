@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import Transaction from '../model/Transaction.js';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import crypto from 'crypto';
 dotenv.config();
 
 // Coinbase Commerce (no DB)
@@ -328,5 +329,32 @@ export const getGoogleWalletStatus = async (req, res) => {
   } catch (err) {
     console.error('getGoogleWalletStatus', err?.message || err);
     res.status(500).json({ success: false, message: err?.message || 'internal' });
+  }
+};
+
+export const coinbaseWebhook = (req, res) => {
+  try {
+    const secret = process.env.COINBASE_WEBHOOK_SECRET || '';
+    const signature = req.headers['x-cc-webhook-signature'];
+    const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
+
+    if (secret) {
+      const digest = crypto.createHmac('sha256', secret).update(raw).digest('hex');
+      if (signature !== digest) {
+        return res.status(400).send('invalid signature');
+      }
+    }
+
+    // Optional: inspect event without persisting
+    try {
+      const event = JSON.parse(raw.toString('utf8'));
+      console.log('Coinbase webhook:', event?.type, event?.data?.id);
+    } catch {}
+
+    return res.status(200).send('ok');
+  } catch (e) {
+    console.error('coinbaseWebhook', e?.message || e);
+    // Acknowledge to avoid retries if you don't need them now
+    return res.status(200).send('ok');
   }
 };
