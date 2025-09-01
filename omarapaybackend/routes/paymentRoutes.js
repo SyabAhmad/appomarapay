@@ -7,7 +7,6 @@ import {
   getCryptoCharge,
   verifyCryptoCharge,
   verifyCryptoOnChain,
-  coinbaseWebhook,
   createGcashPayment,
   getGcashStatus,
   createGoogleWalletPayment,
@@ -26,7 +25,7 @@ router.post('/crypto', createCryptoCharge);
 router.get('/crypto/:id', getCryptoCharge);
 router.get('/crypto/:id/verify', verifyCryptoCharge);
 router.get('/crypto/:id/verify-onchain', verifyCryptoOnChain);
-router.post('/webhook/coinbase', coinbaseWebhook);
+// router.post('/webhook/coinbase', coinbaseWebhook);
 
 // GCash (Xendit/PayMongo/mock)
 router.post('/gcash', createGcashPayment);
