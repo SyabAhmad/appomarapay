@@ -11,9 +11,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GCashMethod'>;
 
 const wallets = [
   { id: 'gcash', name: 'GCash', emoji: '📱' },
-  { id: 'gpay', name: 'Google Pay', emoji: '🅖' },
-  { id: 'paypal', name: 'PayPal', emoji: '💸' },
-  { id: 'other', name: 'Other Wallet', emoji: '🔗' },
+  { id: 'googlewallet', name: 'Google Wallet', emoji: '🅖' },
 ];
 
 const GCashMethod: React.FC<Props> = ({ navigation }) => {

@@ -74,7 +74,13 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
     return chainId === 'gcash' || n.includes('gcash') || n.includes('google pay') || s.includes('gcash') || s.includes('gpay');
   }, [chainId, chainName, tokenSymbol]);
 
-  const isFiatFlow = isCardPayment || isGCash;
+  const isGoogleWallet = useMemo(() => {
+    const n = (chainName || '').toLowerCase();
+    const s = (tokenSymbol || '').toLowerCase();
+    return chainId === 'googlewallet' || n.includes('google wallet') || s.includes('google wallet');
+  }, [chainId, chainName, tokenSymbol]);
+
+  const isFiatFlow = isCardPayment || isGCash || isGoogleWallet;
 
   const [locked, setLocked] = useState(!isFiatFlow); // Fiat (card/gcash) start unlocked
   const [rate, setRate] = useState<number | null>(null);
@@ -195,13 +201,15 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
                     source={
                       isCardPayment
                         ? require('../../assets/visa.png')
-                        : require('../../assets/logo.png') // replace with gcash icon if you add one
+                        : require('../../assets/logo.png') // replace with gcash/google-wallet icons if you add them
                     }
                     style={styles.tokenLogo}
                     resizeMode="contain"
                   />
                   <View style={{ marginLeft: 12 }}>
-                    <Text style={styles.tokenSymbol}>{chainName ?? (isCardPayment ? 'Card Payment' : 'GCash')}</Text>
+                    <Text style={styles.tokenSymbol}>
+                      {chainName ?? (isCardPayment ? 'Card Payment' : isGoogleWallet ? 'Google Wallet' : 'GCash')}
+                    </Text>
                     <Text style={styles.tokenSub}>USD Direct Payment</Text>
                   </View>
                 </View>
@@ -225,7 +233,9 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
                 </TouchableOpacity>
               </>
             ) : (
-              <Text style={styles.metaText}>{isCardPayment ? 'Card payment - USD direct' : 'GCash payment - USD direct'}</Text>
+              <Text style={styles.metaText}>
+                {isCardPayment ? 'Card payment - USD direct' : isGoogleWallet ? 'Google Wallet - USD direct' : 'GCash payment - USD direct'}
+              </Text>
             )}
           </View>
         </View>

@@ -358,8 +358,9 @@ export const getCardPayment = async (req, res) => {
   }
 };
 
-// Simple in-memory store for demo (replace with DB/provider later)
+// Simple in-memory store for demo (replace with real provider later)
 const gcashMemory = new Map(); // id -> { status, hosted_url, amount, currency, ... }
+const googleWalletMemory = new Map(); // id -> { status, hosted_url, amount, currency, ... }
 
 // Helper: pick provider
 const hasXendit = !!process.env.XENDIT_SECRET_KEY;
@@ -499,5 +500,38 @@ export const getGcashStatus = async (req, res) => {
   } catch (err) {
     console.error('getGcashStatus', err?.response?.data || err?.message || err);
     res.status(err?.response?.status || 500).json({ success: false, message: err?.response?.data || err?.message || 'internal' });
+  }
+};
+
+export const createGoogleWalletPayment = async (req, res) => {
+  try {
+    const { amount = '0.00', currency = 'USD', description = '', metadata = {} } = req.body || {};
+    const id = `gw_${crypto.randomBytes(6).toString('hex')}`;
+    // placeholder hosted URL (replace with provider checkout/deeplink when available)
+    const hosted_url = `https://pay.google.com/gp/p/ui/pay?ref=${id}&amount=${encodeURIComponent(amount)}&currency=${currency}`;
+    const record = { status: 'pending', amount, currency, description, metadata, hosted_url, createdAt: Date.now() };
+    googleWalletMemory.set(id, record);
+    return res.json({ success: true, id, hosted_url, status: record.status });
+  } catch (err) {
+    console.error('createGoogleWalletPayment', err?.message || err);
+    res.status(500).json({ success: false, message: err?.message || 'internal' });
+  }
+};
+
+export const getGoogleWalletStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, message: 'missing id' });
+    const rec = googleWalletMemory.get(id);
+    if (!rec) return res.status(404).json({ success: false, message: 'not found' });
+    // test-only: force success with ?success=1
+    if (req.query.success === '1' && rec.status !== 'succeeded') {
+      rec.status = 'succeeded';
+      googleWalletMemory.set(id, rec);
+    }
+    return res.json({ success: true, status: rec.status, hosted_url: rec.hosted_url, amount: rec.amount, currency: rec.currency });
+  } catch (err) {
+    console.error('getGoogleWalletStatus', err?.message || err);
+    res.status(500).json({ success: false, message: err?.message || 'internal' });
   }
 };

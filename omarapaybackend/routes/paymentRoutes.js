@@ -10,6 +10,8 @@ import {
   coinbaseWebhook,
   createGcashPayment,
   getGcashStatus,
+  createGoogleWalletPayment,
+  getGoogleWalletStatus,
 } from '../controllers/PaymentController.js';
 
 const router = express.Router();
@@ -29,5 +31,8 @@ router.post('/webhook/coinbase', coinbaseWebhook);
 // GCash (Xendit/PayMongo/mock)
 router.post('/gcash', createGcashPayment);
 router.get('/gcash/:id', getGcashStatus);
+// Google Wallet (mock)
+router.post('/googlewallet', createGoogleWalletPayment);
+router.get('/googlewallet/:id', getGoogleWalletStatus);
 
 export default router;

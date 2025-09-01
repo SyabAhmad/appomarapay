@@ -342,6 +342,39 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const checkGoogleWalletStatus = async () => {
+    const id = (route.params as any)?.chargeId || (route.params as any)?.txId;
+    if (!id) {
+      Alert.alert('Missing id', 'Cannot check Google Wallet status');
+      return;
+    }
+    try { setChecking(true); } catch {}
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/googlewallet/${encodeURIComponent(id)}`);
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        Alert.alert('Error', body?.message ?? `Status ${res.status}`);
+        return;
+      }
+      const status = String(body?.status || '').toLowerCase();
+      if (['succeeded','paid','completed'].includes(status)) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'FinalSuccess' as never, params: { success: true, chainName: 'Google Wallet', tokenSymbol: 'USD', tokenAmount, usdAmount, mobile, receivingAddress } as never }],
+        });
+      } else if (['failed','canceled'].includes(status)) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'FinalFailure' as never, params: { chainName: 'Google Wallet', tokenSymbol: 'USD', usdAmount, mobile, errorMessage: `Payment ${status}` } as never }],
+        });
+      } else {
+        Alert.alert('Status', `Payment status: ${status || 'pending'}`);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Unable to check status');
+    } finally { try { setChecking(false); } catch {} }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
@@ -401,6 +434,13 @@ const DetailedReceipt: React.FC<Props> = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Google Wallet check status button */}
+        {((route.params as any)?.chainName || '').toString().toLowerCase().includes('google wallet') ? (
+          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={checkGoogleWalletStatus}>
+            <Text style={styles.primaryBtnText}>Check Google Wallet status</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* Details card */}

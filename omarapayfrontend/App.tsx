@@ -23,6 +23,7 @@ import OtpVerification from './src/screens/OtpVerification';
 import CryptoPay from './src/screens/CryptoPay';
 import CardMethod from './src/screens/CardMethod';
 import GCashMethod from './src/screens/GCashMethod';
+import GCashDetails from './src/screens/GCashDetails';
 import DetailedReceipt from './src/screens/DetailedReceipt';
 import FinalSuccess from './src/screens/FinalSuccess';
 import FinalFailure from './src/screens/FinalFailure';
@@ -89,6 +90,7 @@ function App(): React.JSX.Element {
               <Stack.Screen name="CryptoPay" component={CryptoPay} />
               <Stack.Screen name="CardMethod" component={CardMethod} />
               <Stack.Screen name="GCashMethod" component={GCashMethod} />
+              <Stack.Screen name="GCashDetails" component={GCashDetails} />
               <Stack.Screen name="DetailedReceipt" component={DetailedReceipt} />
               <Stack.Screen name="FinalSuccess" component={FinalSuccess} />
               <Stack.Screen name="FinalFailure" component={FinalFailure} />
