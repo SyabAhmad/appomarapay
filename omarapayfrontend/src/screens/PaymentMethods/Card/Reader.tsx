@@ -44,10 +44,14 @@ const CardReaderUI: React.FC<Props> = ({ amount = '0.00', deviceName = null, err
   };
 
   const handleBack = () => {
-    if (onBack) onBack();
-    else onCancel?.();
+    if (onBack) {
+      onBack();
+      return;
+    }
+    // fallback: call onCancel only if provided (do not call navigation.goBack() here)
+    onCancel?.();
   };
-
+  
   return (
     <View style={styles.safe}>
       <View style={styles.headerRow}>

@@ -78,7 +78,7 @@ export const stripeWebhook = async (req, res) => {
 // ----------------- Crypto (Coinbase Commerce) -----------------
 export const createCryptoCharge = async (req, res) => {
   try {
-    const ccKey = process.env.COINBASE_COMMERCE_API_KEY || process.env.COINBASE_API_KEY || null;
+    const ccKey = process.env.COINBASE_API_KEY || process.env.COINBASE_API_KEY || null;
     if (!ccKey) {
       console.error('createCryptoCharge: missing COINBASE_COMMERCE_API_KEY');
       return res.status(500).json({ success: false, message: 'Server not configured: missing COINBASE_COMMERCE_API_KEY' });

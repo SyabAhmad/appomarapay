@@ -44,6 +44,18 @@ const CardPayment: React.FC<Props> = ({ navigation, route }) => {
     createPI();
   }, [createPI]);
 
+  const safeBack = () => {
+    try {
+      if (navigation?.canGoBack && navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
+      }
+    } catch (err) {
+      console.warn('safeBack failed', err);
+    }
+  };
+
   // UI-only: render the CardReader UI and wire lightweight callbacks to existing logic
   return (
     <View style={{ flex: 1 }}>
@@ -51,20 +63,11 @@ const CardPayment: React.FC<Props> = ({ navigation, route }) => {
         amount={String(Number(route?.params?.amount ?? '0').toFixed(2))}
         deviceName={undefined as any}
         errorMessage={undefined as any}
-        onStart={() => {
-          // call existing init/payment intent if present
-          try { (createPI as any)?.(); } catch {}
-          // also call any hardware SDK start from your app here
-        }}
-        onRetry={() => {
-          try { (createPI as any)?.(); } catch {}
-        }}
-        onCancel={() => {
-          // optional: keep on-screen, or go back
-          try { navigation.goBack(); } catch {}
-        }}
+        onStart={() => { try { (createPI as any)?.(); } catch {} }}
+        onRetry={() => { try { (createPI as any)?.(); } catch {} }}
+        onCancel={safeBack}
+        onBack={safeBack}
         onDone={() => {
-          // navigate to receipt/success — adapt params to your existing flow
           try {
             navigation.reset({
               index: 0,
@@ -77,7 +80,7 @@ const CardPayment: React.FC<Props> = ({ navigation, route }) => {
                     tokenAmount: route?.params?.amount ?? '0.00',
                     usdAmount: route?.params?.amount ?? '0.00',
                     mobile: route?.params?.metadata?.phone ?? '-',
-                    receivingAddress: '-', // replace with actual id from SDK/processor
+                    receivingAddress: '-',
                     txId: null,
                   } as never,
                 },
