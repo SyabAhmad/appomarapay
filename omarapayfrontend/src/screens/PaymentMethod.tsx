@@ -54,23 +54,20 @@ const PaymentMethod: React.FC<Props> = ({ navigation, route }) => {
           <Panel
             emoji="💳"
             title="Card"
-            subtitle="Pay with debit/credit card"
-            selected={selected === 'Card'}
-            onPress={() => navigation.navigate('CardMethod' as never)}
+            subtitle="Tap/Swipe or Google Pay"
+            onPress={() => navigation.navigate('CardStart' as never)}
           />
           <Panel
             emoji="🪙"
-            title="Blockchain"
-            subtitle="Pay using cryptocurrency"
-            selected={selected === 'Blockchain'}
-            onPress={() => navigation.navigate('BlockchainMethod' as never)}
+            title="Crypto"
+            subtitle="Pay with crypto"
+            onPress={() => navigation.navigate('CryptoStart' as never)}
           />
           <Panel
             emoji="📱"
-            title="GCash"
-            subtitle="Pay with GCash wallet"
-            selected={selected === 'GCash'}
-            onPress={() => navigation.navigate('GCashMethod' as never)}
+            title="Wallets"
+            subtitle="GCash / Google Wallet"
+            onPress={() => navigation.navigate('GCashStart' as never)}
           />
         </View>
       </ScrollView>
