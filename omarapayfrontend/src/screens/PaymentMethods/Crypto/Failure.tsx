@@ -10,7 +10,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
-  FinalFailure: {
+  CryptoFailure: {
     chainName?: string;
     tokenSymbol?: string;
     tokenAmount?: string;
@@ -23,7 +23,7 @@ type RootStackParamList = {
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'CryptoFailure'>;
 
-const FinalFailure: React.FC<Props> = ({ navigation, route }) => {
+const CryptoFailure: React.FC<Props> = ({ navigation, route }) => {
   const {
     chainName = 'Ethereum',
     tokenSymbol = 'ETH',
@@ -145,4 +145,4 @@ const styles = StyleSheet.create({
   doneText: { color: '#fff', fontWeight: '800' },
 });
 
-export default FinalFailure;
+export default CryptoFailure;

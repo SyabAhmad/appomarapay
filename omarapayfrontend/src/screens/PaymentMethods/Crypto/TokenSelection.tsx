@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView } from 'rea
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
-  TokenSelection: { chainId: string; chainName?: string } | undefined;
-  AmountEntry: { chainId: string; chainName?: string; tokenId?: string; tokenSymbol?: string } | undefined;
+  CryptoTokenSelection: { chainId: string; chainName?: string } | undefined;
+  CryptoAmountEntry: { chainId: string; chainName?: string; tokenId?: string; tokenSymbol?: string } | undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'CryptoTokenSelection'>;
 
@@ -29,21 +29,13 @@ const TOKENS_BY_CHAIN: Record<string, Array<{ id: string; symbol: string; name: 
     { id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../../../assets/USDCoin.png') },
   ],
   Arbitrum: [
-    
     { id: 'Ethereum', symbol: 'ethereum', name: 'Ethereum', logo: require('../../../../assets/Ethereum.png') },
     { id: 'Arbitrum', symbol: 'ARB', name: 'Arbitrum', logo: require('../../../../assets/Arbitrum.png') },
     { id: 'Tether', symbol: 'tether', name: 'Tether', logo: require('../../../../assets/Tether.png') },
   ],
-  Polkadot: [
-    { id: 'Polkadot', symbol: 'DOT', name: 'Polkadot', logo: require('../../../../assets/Polkadot.png') },
-  ],
-  Tron: [
-    { id: 'Tron', symbol: 'TRX', name: 'Tron', logo: require('../../../../assets/Tron.png') },
-  ],
-  NearProtocol: [
-    { id: 'Near Protocol', symbol: 'NEAR', name: 'Near Protocol', logo: require('../../../../assets/NearProtocol.png') },
-  ],
-  // fallback
+  Polkadot: [{ id: 'Polkadot', symbol: 'DOT', name: 'Polkadot', logo: require('../../../../assets/Polkadot.png') }],
+  Tron: [{ id: 'Tron', symbol: 'TRX', name: 'Tron', logo: require('../../../../assets/Tron.png') }],
+  NearProtocol: [{ id: 'Near Protocol', symbol: 'NEAR', name: 'Near Protocol', logo: require('../../../../assets/NearProtocol.png') }],
   default: [{ id: 'usdc', symbol: 'USDC', name: 'USD Coin', logo: require('../../../../assets/USDCoin.png') }],
 };
 

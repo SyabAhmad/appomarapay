@@ -1,22 +1,14 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import NumberKeyboard from '../../../components/NumberKeyboard';
-import { API_BASE } from '../config/env';
+import { API_BASE } from '../../../config/env';
 
 type RootStackParamList = {
-  OtpVerification: {
-    chainId?: string;
-    chainName?: string;
-    tokenId?: string;
-    tokenSymbol?: string;
-    selectedAmount?: string;
-    phone?: string;
-    otp?: string;
+  CryptoOtp: {
+    chainId?: string; chainName?: string; tokenId?: string; tokenSymbol?: string; selectedAmount?: string; phone?: string; otp?: string;
   } | undefined;
-  DetailedReceipt: any;
-  FinalFailure: any;
-  CardPayment: { amount: string; currency?: string; description?: string; metadata?: Record<string, any> } | undefined;
+  CryptoReceipt: any;
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CryptoOtp'>;
@@ -27,27 +19,9 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
   const [verifying, setVerifying] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState<string>('');
 
-  const isCard = useMemo(() => (tokenSymbol?.toUpperCase() === 'USD') || (chainId === 'card'), [tokenSymbol, chainId]);
-  const isGCash = useMemo(() => {
-    const n = (chainName || '').toLowerCase();
-    const s = (tokenSymbol || '').toLowerCase();
-    return chainId === 'gcash' || n.includes('gcash') || n.includes('google pay') || s.includes('gcash') || s.includes('gpay');
-  }, [chainId, chainName, tokenSymbol]);
-
-  const isGoogleWallet = useMemo(() => {
-    const n = (chainName || '').toLowerCase();
-    const s = (tokenSymbol || '').toLowerCase();
-    return chainId === 'googlewallet' || n.includes('google wallet') || s.includes('google wallet');
-  }, [chainId, chainName, tokenSymbol]);
-
-  // Generate a dummy OTP for testing (or use provided otp)
   useEffect(() => {
-    if (otp && /^\d{6}$/.test(otp)) {
-      setGeneratedOtp(otp);
-    } else {
-      const rnd = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(rnd);
-    }
+    if (otp && /^\d{6}$/.test(otp)) setGeneratedOtp(otp);
+    else setGeneratedOtp(Math.floor(100000 + Math.random() * 900000).toString());
   }, [otp]);
 
   const onVerify = async () => {
@@ -58,77 +32,7 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
-    // Treat Google Wallet like card (Stripe PaymentSheet with Google Pay)
-    if (isCard || isGoogleWallet) {
-      // Route to Stripe card screen; do not create crypto checkout
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'CardPayment' as never,
-            params: {
-              amount: selectedAmount,
-              currency: 'usd',
-              description: `Payment for ${chainName ?? (isGoogleWallet ? 'Google Wallet' : 'Card')}`,
-              metadata: { phone, chainName, tokenSymbol: 'USD', channel: isGoogleWallet ? 'googlewallet' : 'card' },
-              // helper flag so UI text says "Google Wallet" instead of "Google Pay"
-              googleWallet: isGoogleWallet === true,
-            } as never,
-          },
-        ],
-      });
-      return;
-    }
-
-    if (isGCash) {
-      // Create a GCash payment/checkout on backend
-      setVerifying(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/payments/gcash`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: String(Number(selectedAmount || '0').toFixed(2)),
-            currency: 'USD',
-            description: `GCash charge ${selectedAmount} USD`,
-            metadata: { phone, chainName: chainName ?? 'GCash', tokenSymbol: 'GCASH' },
-          }),
-        });
-        const body = await res.json().catch(() => null);
-        if (!res.ok || !body?.success) {
-          const msg = body?.message || `Failed (${res.status}) to create GCash charge`;
-          Alert.alert('GCash error', msg);
-          setVerifying(false);
-          return;
-        }
-        navigation.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'CryptoReceipt' as never,
-              params: {
-                chainName: chainName ?? 'GCash',
-                tokenSymbol: 'USD',
-                tokenAmount: undefined,
-                usdAmount: selectedAmount,
-                mobile: phone,
-                receivingAddress: body?.hosted_url ?? body?.reference ?? body?.id ?? '-',
-                hosted_url: body?.hosted_url ?? null,
-                chargeId: body?.id ?? null,
-                txId: body?.id ?? null,
-              } as never,
-            },
-          ],
-        });
-      } catch (err: any) {
-        Alert.alert('Network error', err?.message ?? 'Unable to create GCash payment');
-      } finally {
-        setVerifying(false);
-      }
-      return;
-    }
-
-    // Crypto flow: create Coinbase charge via backend
+    // Crypto flow: create Coinbase Commerce charge via backend
     setVerifying(true);
     try {
       const res = await fetch(`${API_BASE}/api/payments/crypto`, {
@@ -145,34 +49,43 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
       const body = await res.json().catch(() => null);
 
       if (!res.ok || !body?.success) {
-        const msg =
-          body?.message?.error?.message ||
-          body?.message ||
-          `Failed (${res.status}) to create checkout`;
+        const msg = body?.message?.error?.message || body?.message || `Failed (${res.status}) to create checkout`;
         Alert.alert('Create checkout failed', msg);
         setVerifying(false);
         return;
       }
 
+      // Extract receiving address by token
+      const addresses =
+        body?.addresses ??
+        body?.raw?.addresses ??
+        body?.raw?.data?.addresses ??
+        null;
+      const sym = String(tokenSymbol ?? '').toUpperCase();
+      const recvAddr =
+        (addresses && sym && addresses[sym]) ||
+        (addresses && Object.values(addresses)[0]) ||
+        null;
+
       navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'CryptoReceipt' as never,
-            params: {
-              chainName,
-              tokenSymbol,
-              tokenAmount: body?.raw?.pricing?.[tokenSymbol?.toUpperCase() || '']?.amount ?? undefined,
-              usdAmount: selectedAmount,
-              mobile: phone,
-              receivingAddress: body?.hosted_url,
-              hosted_url: body?.hosted_url,
-              chargeId: body?.chargeId,
-              txId: body?.txId ?? null,
-            } as never,
-          },
-        ],
-      });
+         index: 0,
+         routes: [
+           {
+             name: 'CryptoReceipt' as never,
+             params: {
+               chainName,
+               tokenSymbol,
+               tokenAmount: body?.raw?.pricing?.[String(sym)]?.amount ?? undefined,
+               usdAmount: selectedAmount,
+               mobile: phone,
+               receivingAddress: recvAddr ?? '-',
+               hosted_url: body?.hosted_url,
+               chargeId: body?.chargeId,
+               txId: body?.txId ?? null,
+             } as never,
+           },
+         ],
+       });
     } catch (err: any) {
       Alert.alert('Network error', err?.message ?? 'Unable to create checkout');
     } finally {
@@ -198,11 +111,7 @@ const OtpVerification: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       <View style={styles.keyboardWrap}>
-        <NumberKeyboard
-          value={code}
-          onChange={(v) => setCode(v.replace(/[^\d]/g, '').slice(0, 6))}
-          maxLength={6}
-        />
+        <NumberKeyboard value={code} onChange={(v) => setCode(v.replace(/[^\d]/g, '').slice(0, 6))} maxLength={6} />
       </View>
 
       <TouchableOpacity

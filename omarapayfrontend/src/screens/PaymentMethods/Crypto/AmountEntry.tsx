@@ -13,32 +13,30 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import NumberKeyboard from '../../../components/NumberKeyboard';
 
 type RootStackParamList = {
-  AmountEntry: { chainId: string; chainName?: string; tokenId?: string; tokenSymbol?: string } | undefined;
+  CryptoAmountEntry: { chainId: string; chainName?: string; tokenId?: string; tokenSymbol?: string } | undefined;
   PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash'; selectedToken?: string; chainId?: string } | undefined;
-  Login: undefined;
+  CryptoConfirm: any;
+  PinAuth: undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'CryptoAmountEntry'>;
 
 const getTokenLogo = (symbol?: string, id?: string) => {
   const s = (symbol ?? id ?? '').toUpperCase();
   try {
-    if (s.includes('ETH') || s === 'ETH') return require('../../../../assets/Etherum.png');
+    if (s.includes('ETH') || s === 'ETH') return require('../../../../assets/Ethereum.png');
     if (s.includes('BTC') || s === 'BTC') return require('../../../../assets/Bitcoin.png');
     if (s.includes('SOL') || s === 'SOL') return require('../../../../assets/logo.png');
     if (s.includes('MATIC') || s === 'MATIC') return require('../../../../assets/Matic.png');
-    if (s.includes('USDC') || s === 'USDC') return require('../../../../assets/USD Coin.png');
+    if (s.includes('USDC') || s === 'USDC') return require('../../../../assets/USDCoin.png');
     if (s.includes('BNB') || s === 'BNB') return require('../../../../assets/Bnb.png');
     if (s.includes('AVAX') || s === 'AVAX') return require('../../../../assets/logo.png');
     if (s.includes('TRON') || s === 'TRON') return require('../../../../assets/Tron.png');
-  } catch {
-    // fallback
-  }
+  } catch {}
   return require('../../../../assets/logo.png');
 };
 
 const addCommas = (val: string) => {
   if (!val) return '0.00';
-  // keep user's typing precision: separate integer and fractional
   if (val.includes('.')) {
     const [intPart, fracPart] = val.split('.');
     const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') || '0';
@@ -55,11 +53,7 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
 
   const [amount, setAmount] = React.useState<string>('');
 
-  const displayAmount = useMemo(() => {
-    if (!amount) return '0.00';
-    return addCommas(amount);
-  }, [amount]);
-
+  const displayAmount = useMemo(() => (amount ? addCommas(amount) : '0.00'), [amount]);
   const tokenLogo = useMemo(() => getTokenLogo(tokenSymbol, tokenId), [tokenSymbol, tokenId]);
 
   const onConfirm = () => {
@@ -99,11 +93,7 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
             </View>
 
             <View style={styles.amountWrap}>
-              <Text
-                accessible
-                accessibilityLabel={`Amount ${displayAmount}`}
-                style={styles.amountText}
-              >
+              <Text accessible accessibilityLabel={`Amount ${displayAmount}`} style={styles.amountText}>
                 {displayAmount}
               </Text>
               <Text style={styles.subtle}>Tap numbers to edit — decimals allowed</Text>
@@ -138,96 +128,36 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? 12 : 20,
-  },
-  header: {
-    width: '100%',
-    maxWidth: 560,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
+  safe: { flex: 1, backgroundColor: '#f8fafc', alignItems: 'center', paddingTop: Platform.OS === 'android' ? 12 : 20 },
+  header: { width: '100%', maxWidth: 560, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   back: { color: '#2563eb', fontWeight: '700' },
   title: { fontWeight: '800', fontSize: 16, color: '#0f172a' },
   logout: { color: '#2563eb', fontWeight: '700' },
-
   brandRow: { width: '100%', alignItems: 'center', marginTop: 6 },
   logo: { width: 140, height: 44 },
-
   prompt: { color: '#6b7280', textAlign: 'center', marginTop: 12, paddingHorizontal: 28 },
-
-  centerArea: {
-    width: '100%',
-    maxWidth: 560,
-    paddingHorizontal: 16,
-    marginTop: 18,
-    alignItems: 'center',
-  },
-
+  centerArea: { width: '100%', maxWidth: 560, paddingHorizontal: 16, marginTop: 18, alignItems: 'center' },
   amountCard: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    // subtle shadow
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-    marginBottom: 12,
+    width: '100%', backgroundColor: '#ffffff', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4, marginBottom: 12,
   },
-
   amountTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   currencyWrap: { width: 56, alignItems: 'center', justifyContent: 'center' },
   currency: { color: '#9ca3af', fontSize: 28 },
-
   amountWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   amountText: { fontSize: 56, fontWeight: '900', color: '#0f172a' },
   subtle: { color: '#94a3b8', marginTop: 6, fontSize: 12 },
-
   tokenWrap: { alignItems: 'center', width: 80 },
   tokenImage: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#f3f4f6' },
   tokenLabel: { marginTop: 6, fontWeight: '700', fontSize: 12, color: '#111827' },
-
   helperText: { color: '#94a3b8', marginTop: 8, marginBottom: 6 },
-
-  keyboardContainer: {
-    width: '100%',
-    marginTop: 6,
-    paddingBottom: 160, // room for footer
-  },
-
-  footer: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 18,
-    alignItems: 'center',
-  },
-
+  keyboardContainer: { width: '100%', marginTop: 6, paddingBottom: 160 },
+  footer: { position: 'absolute', left: 16, right: 16, bottom: 18, alignItems: 'center' },
   continueBtn: {
-    width: '100%',
-    maxWidth: 560,
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#2563eb',
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    width: '100%', maxWidth: 560, backgroundColor: '#2563eb', paddingVertical: 14, borderRadius: 12, alignItems: 'center',
+    shadowColor: '#2563eb', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6,
   },
   continueText: { color: '#fff', fontWeight: '900', fontSize: 16 },
-
   disabled: { opacity: 0.6 },
 });
 

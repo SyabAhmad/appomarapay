@@ -4,20 +4,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
   PaymentMethod: undefined;
-  Login: undefined;
-  BlockchainMethod: undefined;
-  CardSelectedItemLite: undefined;
-  GCashMethod: undefined;
-  CardMethod: undefined;
-  TokenSelection: { chainId: string; chainName?: string } | undefined;
+  CryptoStart: undefined;
+  CryptoTokenSelection: { chainId: string; chainName?: string } | undefined;
+  PinAuth: undefined;
 };
-type Props = NativeStackScreenProps<RootStackParamList, 'BlockchainMethod'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'CryptoStart'>;
 
 const BlockchainMethod: React.FC<Props> = ({ navigation }) => {
   const onLogout = () => navigation.reset({ index: 0, routes: [{ name: 'PinAuth' as never }] });
   const [selectedChain, setSelectedChain] = useState<string | null>(null);
 
-  // use asset logos where available, fallback to app logo for missing images
   const chains = [
     { id: 'Bitcoin', name: 'Bitcoin', logo: require('../../../../assets/Bitcoin.png') },
     { id: 'Ethereum', name: 'Ethereum', logo: require('../../../../assets/Ethereum.png') },

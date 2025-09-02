@@ -54,7 +54,7 @@ const PaymentMethod: React.FC<Props> = ({ navigation, route }) => {
           <Panel
             emoji="💳"
             title="Card"
-            subtitle="Tap/Swipe or Google Pay"
+            subtitle="Tap/Swipe or Enter Manualy"
             onPress={() => navigation.navigate('CardStart' as never)}
           />
           <Panel
