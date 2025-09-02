@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import crypto from 'crypto';
 import axios from 'axios';
 import Stripe from 'stripe';
 dotenv.config();
@@ -7,15 +6,21 @@ dotenv.config();
 // Stripe (cards)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2022-11-15' });
 
-// canonical key (trim whitespace)
-const COINBASE_KEY = (process.env.COINBASE_API_KEY || process.env.COINBASE_COMMERCE_API_KEY || '').trim();
+// read exactly the Railway variable shown in your screenshot
+const RAW_COINBASE = (process.env.COINBASE_API_KEY || process.env.COINBASE_COMMERCE_API_KEY || '').trim();
+const mask = s => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
 
-// create axios instance (optional) — keep but use COINBASE_KEY when sending
+console.info('startup: COINBASE_API_KEY=', mask(process.env.COINBASE_API_KEY), 'COINBASE_COMMERCE_API_KEY=', mask(process.env.COINBASE_COMMERCE_API_KEY), '-> using', mask(RAW_COINBASE));
+
+const COINBASE_KEY = RAW_COINBASE;
+
+// axios instance with explicit API key header
 const CC_API = axios.create({
   baseURL: 'https://api.commerce.coinbase.com',
   headers: {
-    'X-CC-Version': '2018-03-22',
     'Content-Type': 'application/json',
+    'X-CC-Version': '2018-03-22',
+    ...(COINBASE_KEY ? { 'X-CC-Api-Key': COINBASE_KEY } : {}),
   },
 });
 const parseChargeStatus = (data) => {
@@ -81,40 +86,28 @@ export const stripeWebhook = async (req, res) => {
 export const createCryptoCharge = async (req, res) => {
   try {
     if (!COINBASE_KEY) {
-      console.error('createCryptoCharge: missing COINBASE key env var');
-      return res.status(500).json({ success: false, message: 'Server not configured: missing COINBASE key' });
+      console.error('createCryptoCharge: missing COINBASE_API_KEY');
+      return res.status(500).json({ success: false, message: 'Server not configured: missing COINBASE_API_KEY' });
     }
-
-    // masked log so you can confirm which key the process has
-    const masked = COINBASE_KEY.length > 8 ? `${COINBASE_KEY.slice(0,4)}...${COINBASE_KEY.slice(-4)}` : '***';
-    console.info('createCryptoCharge: using coinbase key:', masked);
 
     const payload = {
       name: req.body?.name || 'Charge',
+      description: req.body?.description || '',
       local_price: { amount: String(req.body?.amount || '0.00'), currency: req.body?.currency || 'USD' },
       pricing_type: 'fixed_price',
       metadata: req.body?.metadata || {},
     };
 
-    // explicit fetch with header from COINBASE_KEY
-    const r = await fetch('https://api.commerce.coinbase.com/charges', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CC-Api-Key': COINBASE_KEY,
-        'X-CC-Version': '2018-03-22',
-      },
-      body: JSON.stringify(payload),
-    });
-    const j = await r.json().catch(() => null);
-    console.info('createCryptoCharge: coinbase status=', r.status, 'body=', j);
+    console.info('createCryptoCharge: posting to coinbase with key=', mask(COINBASE_KEY));
+    const r = await CC_API.post('/charges', payload);
+    console.info('createCryptoCharge: coinbase status=', r.status, 'id=', r.data?.data?.id);
 
-    if (!r.ok) {
-      return res.status(502).json({ success: false, message: j || `Coinbase error (${r.status})` });
-    }
-
-    return res.json({ success: true, data: j });
+    return res.json({ success: true, chargeId: r.data?.data?.id, hosted_url: r.data?.data?.hosted_url, raw: r.data });
   } catch (err) {
+    if (err?.response) {
+      console.error('createCryptoCharge: coinbase response error', err.response.status, err.response.data);
+      return res.status(502).json({ success: false, message: err.response.data || `Coinbase error (${err.response.status})` });
+    }
     console.error('createCryptoCharge error', err?.message || err);
     return res.status(500).json({ success: false, message: err?.message || 'internal' });
   }
