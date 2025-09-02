@@ -17,6 +17,12 @@ import {
 
 const router = express.Router();
 
+// --- new: canonical coinbase env read & masked log ---
+const RAW_COINBASE = (process.env.COINBASE_API_KEY || process.env.COINBASE_COMMERCE_API_KEY || '').trim();
+const mask = s => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
+console.info('paymentRoutes: COINBASE_API_KEY=', mask(process.env.COINBASE_API_KEY), 'COINBASE_COMMERCE_API_KEY=', mask(process.env.COINBASE_COMMERCE_API_KEY), '-> using', mask(RAW_COINBASE));
+const COINBASE_KEY = RAW_COINBASE;
+
 // Card (Stripe)
 router.post('/card', createCardPayment);
 router.get('/card/:id', getCardPayment);
@@ -26,15 +32,17 @@ router.post('/webhook/stripe', stripeWebhook);
 router.post('/gcash', createGcashPayment);
 router.get('/gcash/:id', getGcashStatus);
 
-// Crypto (Coinbase Commerce)
+// Crypto (Coinbase Commerce) - use COINBASE_KEY (single canonical env)
 router.post('/crypto', async (req, res) => {
   try {
+    if (!COINBASE_KEY) return res.status(500).json({ success: false, message: 'Server not configured: missing COINBASE_API_KEY' });
+
     const { amount = '0.00', currency = 'USD', name = 'Crypto charge', description = '', metadata = {} } = req.body || {};
     const r = await fetch('https://api.commerce.coinbase.com/charges', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CC-Api-Key': process.env.COINBASE_COMMERCE_API_KEY,
+        'X-CC-Api-Key': COINBASE_KEY,
         'X-CC-Version': '2018-03-22',
       },
       body: JSON.stringify({
@@ -45,8 +53,11 @@ router.post('/crypto', async (req, res) => {
         metadata,
       }),
     });
-    const j = await r.json();
-    if (!r.ok) return res.status(r.status).json({ success: false, message: j });
+    const j = await r.json().catch(() => null);
+    if (!r.ok) {
+      console.error('paymentRoutes /crypto: coinbase error', r.status, j);
+      return res.status(r.status).json({ success: false, message: j });
+    }
     const data = j?.data || j;
     return res.json({
       success: true,
@@ -57,6 +68,7 @@ router.post('/crypto', async (req, res) => {
       raw: data,
     });
   } catch (e) {
+    console.error('paymentRoutes /crypto exception', e?.message || e);
     return res.status(500).json({ success: false, message: e?.message || 'create crypto failed' });
   }
 });
@@ -64,15 +76,20 @@ router.get('/crypto/:id', getCryptoCharge);
 router.get('/crypto/:id/verify', async (req, res) => {
   try {
     const id = req.params.id;
+    if (!COINBASE_KEY) return res.status(500).json({ success: false, message: 'Server not configured: missing COINBASE_API_KEY' });
+
     const r = await fetch(`https://api.commerce.coinbase.com/charges/${encodeURIComponent(id)}`, {
       headers: {
         'Content-Type': 'application/json',
-        'X-CC-Api-Key': process.env.COINBASE_COMMERCE_API_KEY,
+        'X-CC-Api-Key': COINBASE_KEY,
         'X-CC-Version': '2018-03-22',
       },
     });
-    const j = await r.json();
-    if (!r.ok) return res.status(r.status).json({ success: false, message: j });
+    const j = await r.json().catch(() => null);
+    if (!r.ok) {
+      console.error('paymentRoutes /crypto/:id/verify coinbase error', r.status, j);
+      return res.status(r.status).json({ success: false, message: j });
+    }
     const data = j?.data || j;
     const latest = (data?.timeline || []).slice(-1)[0]?.status || data?.status || 'PENDING';
     const verified = ['CONFIRMED', 'COMPLETED', 'RESOLVED'].includes(String(latest).toUpperCase());
@@ -83,6 +100,7 @@ router.get('/crypto/:id/verify', async (req, res) => {
       raw: data,
     });
   } catch (e) {
+    console.error('paymentRoutes /crypto/:id/verify exception', e?.message || e);
     return res.status(500).json({ success: false, message: e?.message || 'verify failed' });
   }
 });

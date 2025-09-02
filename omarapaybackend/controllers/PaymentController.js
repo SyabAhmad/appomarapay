@@ -6,13 +6,11 @@ dotenv.config();
 // Stripe (cards)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2022-11-15' });
 
-// read exactly the Railway variable shown in your screenshot
-const RAW_COINBASE = (process.env.COINBASE_API_KEY || process.env.COINBASE_COMMERCE_API_KEY || '').trim();
+// --- CHANGED: use only COINBASE_API_KEY (no || fallback) ---
+const COINBASE_KEY = (process.env.COINBASE_API_KEY || '').trim();
 const mask = s => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
 
-console.info('startup: COINBASE_API_KEY=', mask(process.env.COINBASE_API_KEY), 'COINBASE_COMMERCE_API_KEY=', mask(process.env.COINBASE_COMMERCE_API_KEY), '-> using', mask(RAW_COINBASE));
-
-const COINBASE_KEY = RAW_COINBASE;
+console.info('startup: using COINBASE_API_KEY=', mask(COINBASE_KEY));
 
 // axios instance with explicit API key header
 const CC_API = axios.create({

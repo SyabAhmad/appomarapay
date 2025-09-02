@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking, Platform, ScrollView, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import {BASE_API_URL} from '@env';
+import { API_BASE } from '../config/env';
 type RootStackParamList = {
   CryptoPay: { amount: string; currency?: string; description?: string } | undefined;
   FinalSuccess: undefined;
@@ -12,7 +12,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CryptoPay'>;
 
 // const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
 // For a physical device replace API_BASE with http://<PC_IP>:5000
-const API_BASE = BASE_API_URL;
 
 const POLL_INTERVAL_MS = 5000;
 const MAX_ATTEMPTS = 120; // ~10 minutes
