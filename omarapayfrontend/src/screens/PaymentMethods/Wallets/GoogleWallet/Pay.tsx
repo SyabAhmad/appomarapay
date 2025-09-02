@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, InteractionManager, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, InteractionManager, Platform, ScrollView } from 'react-native';
 import { initPaymentSheet, presentPaymentSheet } from '@stripe/stripe-react-native';
 import { API_BASE } from '../../../../config/env';
 
@@ -18,6 +18,7 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [needInitRetry, setNeedInitRetry] = useState(false);
+  const [lastResponse, setLastResponse] = useState<any>(null);
 
   const createPI = useCallback(async () => {
     setLoading(true);
@@ -43,24 +44,19 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
             merchantDisplayName: 'OmaraPay',
             merchantCountryCode: 'PH',
             paymentIntentClientSecret: body.clientSecret,
-            googlePay: {
-              merchantCountryCode: 'PH',
-              testEnv: true,
-            },
+            googlePay: { merchantCountryCode: 'PH', testEnv: true },
             style: 'alwaysLight',
           });
           console.debug('initPaymentSheet result', { error });
           if (error) throw new Error(error.message);
           setReady(true);
         } catch (initErr: any) {
-          // Specific Android error occurs when activity isn't ready yet
           const msg = String(initErr?.message || initErr);
           console.warn('initPaymentSheet failed', msg);
           if (msg.includes('Activity') || msg.includes("Activity doesn't exist")) {
-            // Do not show Alert (causes "not attached" error). Show retry UI instead.
             setNeedInitRetry(true);
           } else {
-            Alert.alert('Init failed', msg);
+            try { Alert.alert('Init failed', msg); } catch {}
           }
         } finally {
           setLoading(false);
@@ -69,16 +65,10 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
     } catch (e: any) {
       const msg = String(e?.message || e);
       console.error('createPI/init failed', msg);
-      // If it's the activity-not-ready issue avoid Alert (it will also fail on Android)
       if (msg.includes('Activity') || msg.includes("Activity doesn't exist")) {
         setNeedInitRetry(true);
       } else {
-        // safe to alert on non-activity errors
-        try {
-          Alert.alert('Init failed', msg);
-        } catch {
-          console.warn('Alert failed to show', msg);
-        }
+        try { Alert.alert('Init failed', msg); } catch {}
       }
       setLoading(false);
     }
@@ -133,19 +123,9 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.safe}>
+    <ScrollView contentContainerStyle={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => {
-            // guard against screens that are root of navigator (goBack will be unhandled)
-            if (navigation?.canGoBack && navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              // fallback: reset to WalletStart (adjust name if your navigator uses a different root)
-              navigation.reset({ index: 0, routes: [{ name: 'WalletStart' as never }] });
-            }
-          }}
-        >
+        <TouchableOpacity onPress={() => (navigation?.canGoBack && navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'WalletStart' as never }] }))}>
           <Text style={styles.back}>{'< Back'}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Google Wallet payment</Text>
@@ -157,20 +137,12 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
         {loading ? 'Initializing payment...' : ready ? 'Ready: Google Wallet available' : needInitRetry ? 'Initialization failed — retry' : 'Not initialized (tap Retry)'}
       </Text>
 
-      <TouchableOpacity
-        style={[styles.primary, !ready || loading ? { opacity: 0.6 } : null]}
-        onPress={payWithGooglePay}
-        disabled={!ready || loading}
-      >
+      <TouchableOpacity style={[styles.primary, !ready || loading ? { opacity: 0.6 } : null]} onPress={payWithGooglePay} disabled={!ready || loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Pay with Google Wallet (Tap/Swipe)</Text>}
       </TouchableOpacity>
 
       {!ready && !loading ? (
-        <TouchableOpacity
-          style={[styles.ghost, { marginTop: 12 }]}
-          onPress={() => createPI()}
-          disabled={loading}
-        >
+        <TouchableOpacity style={[styles.ghost, { marginTop: 12 }]} onPress={() => createPI()} disabled={loading}>
           <Text style={styles.ghostText}>{needInitRetry ? 'Retry initialization' : 'Retry initialization'}</Text>
         </TouchableOpacity>
       ) : null}
@@ -178,7 +150,9 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
       <TouchableOpacity style={styles.ghost} onPress={payWithCard} disabled={loading}>
         <Text style={styles.ghostText}>Enter card manually</Text>
       </TouchableOpacity>
-    </View>
+
+      {/* debug UI removed */}
+    </ScrollView>
   );
 };
 
