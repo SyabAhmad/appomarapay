@@ -13,15 +13,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import NumberKeyboard from '../../../../components/NumberKeyboard';
 
 type RootStackParamList = {
-  PhoneConfirmation: {
+  GoogleWalletPhone: {
     chainId?: string;
     chainName?: string;
     tokenId?: string;
     tokenSymbol?: string;
     selectedAmount?: string;
   } | undefined;
-  OtpVerification: any;
-  Login: undefined;
+  GoogleWalletOtp: any;
+  PinAuth: undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'GoogleWalletPhone'>;
 

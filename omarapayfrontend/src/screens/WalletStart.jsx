@@ -26,7 +26,7 @@ export default function WalletStart({ navigation }) {
         <View style={styles.grid}>
           <TouchableOpacity
             style={styles.walletCard}
-            onPress={() => navigation.navigate('GCashStart')}
+            onPress={() => navigation.navigate('GCashAmountEntry', { chainId: 'gcash', chainName: 'GCash' })}
             activeOpacity={0.9}
           >
             <Text style={styles.walletEmoji}>📱</Text>
@@ -35,7 +35,7 @@ export default function WalletStart({ navigation }) {
 
           <TouchableOpacity
             style={styles.walletCard}
-            onPress={() => navigation.navigate('GoogleWalletStart')}
+            onPress={() => navigation.navigate('GoogleWalletAmountEntry', { chainId: 'googlewallet', chainName: 'Google Wallet' })}
             activeOpacity={0.9}
           >
             <Text style={styles.walletEmoji}>🅖</Text>

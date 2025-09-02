@@ -13,32 +13,20 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import NumberKeyboard from '../../../../components/NumberKeyboard';
 
 type RootStackParamList = {
-  AmountEntry: { chainId: string; chainName?: string; tokenId?: string; tokenSymbol?: string } | undefined;
-  PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash'; selectedToken?: string; chainId?: string } | undefined;
-  Login: undefined;
+  GoogleWalletAmountEntry: undefined;
+  GoogleWalletConfirm:
+    | {
+        chainId?: string;
+        chainName?: string;
+        selectedAmount?: string;
+      }
+    | undefined;
+  PinAuth: undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'GoogleWalletAmountEntry'>;
 
-const getTokenLogo = (symbol?: string, id?: string) => {
-  const s = (symbol ?? id ?? '').toUpperCase();
-  try {
-    if (s.includes('ETH') || s === 'ETH') return require('../../../../../assets/Etherum.png');
-    if (s.includes('BTC') || s === 'BTC') return require('../../../../../assets/Bitcoin.png');
-    if (s.includes('SOL') || s === 'SOL') return require('../../../../../assets/logo.png');
-    if (s.includes('MATIC') || s === 'MATIC') return require('../../../../../assets/Matic.png');
-    if (s.includes('USDC') || s === 'USDC') return require('../../../../../assets/USD Coin.png');
-    if (s.includes('BNB') || s === 'BNB') return require('../../../../../assets/Bnb.png');
-    if (s.includes('AVAX') || s === 'AVAX') return require('../../../../../assets/logo.png');
-    if (s.includes('TRON') || s === 'TRON') return require('../../../../../assets/Tron.png');
-  } catch {
-    // fallback
-  }
-  return require('../../../../../assets/logo.png');
-};
-
 const addCommas = (val: string) => {
   if (!val) return '0.00';
-  // keep user's typing precision: separate integer and fractional
   if (val.includes('.')) {
     const [intPart, fracPart] = val.split('.');
     const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') || '0';
@@ -47,11 +35,10 @@ const addCommas = (val: string) => {
   return val.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
-const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
-  const chainId = route.params?.chainId ?? 'ethereum';
-  const chainName = route.params?.chainName ?? chainId;
-  const tokenId = route.params?.tokenId ?? null;
-  const tokenSymbol = route.params?.tokenSymbol ?? '';
+const AmountEntry: React.FC<Props> = ({ navigation }) => {
+  // Google Wallet only
+  const chainId = 'googlewallet';
+  const chainName = 'Google Wallet';
 
   const [amount, setAmount] = React.useState<string>('');
 
@@ -60,14 +47,10 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
     return addCommas(amount);
   }, [amount]);
 
-  const tokenLogo = useMemo(() => getTokenLogo(tokenSymbol, tokenId), [tokenSymbol, tokenId]);
-
   const onConfirm = () => {
     navigation.navigate('GoogleWalletConfirm' as never, {
       chainId,
       chainName,
-      tokenId,
-      tokenSymbol,
       selectedAmount: amount || '0.00',
     } as never);
   };
@@ -79,7 +62,7 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Enter bill amount</Text>
+        <Text style={styles.title}>Google Wallet — Enter amount</Text>
         <TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'PinAuth' as never }] })}>
           <Text style={styles.logout}>Log Out</Text>
         </TouchableOpacity>
@@ -89,7 +72,7 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
         <Image source={require('../../../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
       </View>
 
-      <Text style={styles.prompt}>How much will the customer pay in crypto?</Text>
+      <Text style={styles.prompt}>How much will the customer pay using Google Wallet?</Text>
 
       <View style={styles.centerArea}>
         <View style={styles.amountCard}>
@@ -99,24 +82,15 @@ const AmountEntry: React.FC<Props> = ({ navigation, route }) => {
             </View>
 
             <View style={styles.amountWrap}>
-              <Text
-                accessible
-                accessibilityLabel={`Amount ${displayAmount}`}
-                style={styles.amountText}
-              >
+              <Text accessible accessibilityLabel={`Amount ${displayAmount}`} style={styles.amountText}>
                 {displayAmount}
               </Text>
               <Text style={styles.subtle}>Tap numbers to edit — decimals allowed</Text>
             </View>
-
-            <View style={styles.tokenWrap}>
-              <Image source={tokenLogo} style={styles.tokenImage} resizeMode="contain" />
-              <Text style={styles.tokenLabel}>{tokenSymbol ? tokenSymbol.toUpperCase() : 'TOKEN'}</Text>
-            </View>
           </View>
         </View>
 
-        <Text style={styles.helperText}>Network: {chainName} • Amount locked until confirmation</Text>
+        <Text style={styles.helperText}>Method: Google Wallet</Text>
 
         <View style={styles.keyboardContainer}>
           <NumberKeyboard value={amount} onChange={setAmount} maxLength={12} />
@@ -176,7 +150,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 18,
     paddingHorizontal: 16,
-    // subtle shadow
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 12,
@@ -185,24 +158,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  amountTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  amountTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   currencyWrap: { width: 56, alignItems: 'center', justifyContent: 'center' },
   currency: { color: '#9ca3af', fontSize: 28 },
 
-  amountWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  amountWrap: { alignItems: 'center', justifyContent: 'center' },
   amountText: { fontSize: 56, fontWeight: '900', color: '#0f172a' },
   subtle: { color: '#94a3b8', marginTop: 6, fontSize: 12 },
-
-  tokenWrap: { alignItems: 'center', width: 80 },
-  tokenImage: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#f3f4f6' },
-  tokenLabel: { marginTop: 6, fontWeight: '700', fontSize: 12, color: '#111827' },
 
   helperText: { color: '#94a3b8', marginTop: 8, marginBottom: 6 },
 
   keyboardContainer: {
     width: '100%',
     marginTop: 6,
-    paddingBottom: 160, // room for footer
+    paddingBottom: 160,
   },
 
   footer: {

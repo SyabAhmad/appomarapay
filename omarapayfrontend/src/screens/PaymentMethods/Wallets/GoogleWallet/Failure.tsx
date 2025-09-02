@@ -10,7 +10,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
-  FinalFailure: {
+  GoogleWalletFailure: {
     chainName?: string;
     tokenSymbol?: string;
     tokenAmount?: string;
@@ -19,14 +19,14 @@ type RootStackParamList = {
     receivingAddress?: string;
     errorMessage?: string;
   } | undefined;
-  PaymentMethod: undefined;
+  WalletStart: undefined;
 };
-type Props = NativeStackScreenProps<RootStackParamList, 'FinalFailure'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'GoogleWalletFailure'>;
 
-const FinalFailure: React.FC<Props> = ({ navigation, route }) => {
+const GoogleWalletFailure: React.FC<Props> = ({ navigation, route }) => {
   const {
-    chainName = 'Ethereum',
-    tokenSymbol = 'ETH',
+    chainName = 'Google Wallet',
+    tokenSymbol = 'USD',
     tokenAmount = '0.00',
     usdAmount = '0.00',
     mobile = '-',
@@ -34,16 +34,11 @@ const FinalFailure: React.FC<Props> = ({ navigation, route }) => {
     errorMessage = 'Payment could not be completed',
   } = route.params ?? {};
 
-  const txId = useMemo(() => `TX-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, []);
+  const txId = useMemo(() => `GW-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, []);
   const timestamp = useMemo(() => new Date().toLocaleString(), []);
 
-  const onRetry = () => {
-    navigation.goBack();
-  };
-
-  const onDone = () => {
-    navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
-  };
+  const onRetry = () => navigation.goBack();
+  const onDone = () => navigation.reset({ index: 0, routes: [{ name: 'WalletStart' as never }] });
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -52,14 +47,14 @@ const FinalFailure: React.FC<Props> = ({ navigation, route }) => {
           <View style={[styles.badge, { backgroundColor: '#fee2e2' }]}>
             <Text style={[styles.badgeIcon, { color: '#ef4444' }]}>✕</Text>
           </View>
-          <Text style={styles.title}>Payment Failed</Text>
+          <Text style={styles.title}>Google Wallet — Payment Failed</Text>
           <Text style={styles.subtitle}>{errorMessage}</Text>
         </View>
 
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.col}>
-              <Text style={styles.label}>Cryptocurrency:</Text>
+              <Text style={styles.label}>Method</Text>
               <Text style={styles.value}>{chainName}</Text>
             </View>
             <View style={styles.col}>
@@ -145,4 +140,4 @@ const styles = StyleSheet.create({
   doneText: { color: '#fff', fontWeight: '800' },
 });
 
-export default FinalFailure;
+export default GoogleWalletFailure;

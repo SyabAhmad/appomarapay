@@ -13,7 +13,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
-  FinalSuccess: {
+  GoogleWalletSuccess: {
     success?: boolean;
     chainName?: string;
     tokenSymbol?: string;
@@ -22,15 +22,15 @@ type RootStackParamList = {
     mobile?: string;
     receivingAddress?: string;
   } | undefined;
-  PaymentMethod: undefined;
+  WalletStart: undefined;
 };
-type Props = NativeStackScreenProps<RootStackParamList, 'FinalSuccess'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'GoogleWalletSuccess'>;
 
 const FinalSuccess: React.FC<Props> = ({ navigation, route }) => {
   const {
     success = true,
-    chainName = 'Ethereum',
-    tokenSymbol = 'ETH',
+    chainName = 'Google Wallet',
+    tokenSymbol = 'USD',
     tokenAmount = '0.00',
     usdAmount = '0.00',
     mobile = '-',
@@ -43,10 +43,7 @@ const FinalSuccess: React.FC<Props> = ({ navigation, route }) => {
   const topTitle = success ? 'Successful Payment' : 'Payment Failed';
   const subtitle = success ? 'Congratulations! Your payment is successful' : 'Something went wrong. Please try again';
 
-  const onDone = () => {
-    // return to PaymentMethod (start new flow)
-    navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
-  };
+  const onDone = () => navigation.reset({ index: 0, routes: [{ name: 'WalletStart' as never }] });
 
   return (
     <SafeAreaView style={styles.safe}>
