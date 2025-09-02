@@ -68,7 +68,7 @@ const PaymentMethod: React.FC<Props> = ({ navigation, route }) => {
           <Panel
             emoji="📱"
             title="Wallets"
-            subtitle="GCash / Google Wallet"
+            subtitle="GCash / Google Pay"
             onPress={() => navigation.navigate('WalletStart' as never)}
           />
         </View>

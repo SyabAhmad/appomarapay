@@ -60,6 +60,7 @@ import Logout from './src/screens/Logout';
 import PaymentMethod from './src/screens/PaymentMethod';
 import WalletStart from './src/screens/WalletStart';
 import GoogleWalletStart from './src/screens/PaymentMethods/Wallets/GoogleWallet/Start';
+import PhoneConfirmation from './src/screens/PaymentMethods/Crypto/Phone';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -154,6 +155,7 @@ function App(): React.JSX.Element {
               <Stack.Screen name="CryptoTokenSelection" component={CryptoTokenSelection} />
               <Stack.Screen name="CryptoAmountEntry" component={CryptoAmountEntry} />
               <Stack.Screen name="CryptoConfirm" component={CryptoConfirm} />
+              <Stack.Screen name="PhoneConfirmation" component={PhoneConfirmation} />
               <Stack.Screen name="CryptoOtp" component={CryptoOtp} />
               <Stack.Screen name="CryptoPay" component={CryptoPay} />
               <Stack.Screen name="CryptoQr" component={CryptoQr} />

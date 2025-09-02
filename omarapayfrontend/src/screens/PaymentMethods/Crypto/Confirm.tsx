@@ -68,7 +68,8 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const onRefresh = () => fetchRate(true);
 
   const onConfirm = () => {
-    navigation.navigate('CryptoOtp' as never, {
+    // Route to the shared PhoneConfirmation screen so user can enter/confirm phone (OTP flow happens there)
+    navigation.navigate('PhoneConfirmation' as never, {
       chainId,
       chainName,
       tokenId,

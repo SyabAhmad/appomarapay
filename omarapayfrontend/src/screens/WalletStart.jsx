@@ -39,7 +39,7 @@ export default function WalletStart({ navigation }) {
             activeOpacity={0.9}
           >
             <Text style={styles.walletEmoji}>🅖</Text>
-            <Text style={styles.walletName}>Google Wallet</Text>
+            <Text style={styles.walletName}>Google Pay</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

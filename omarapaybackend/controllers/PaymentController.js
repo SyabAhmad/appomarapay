@@ -78,20 +78,48 @@ export const stripeWebhook = async (req, res) => {
 // ----------------- Crypto (Coinbase Commerce) -----------------
 export const createCryptoCharge = async (req, res) => {
   try {
-    if (!process.env.COINBASE_API_KEY) return res.status(501).json({ success: false, message: 'COINBASE_API_KEY not configured' });
-    const { amount = '0.00', currency = 'USD', name = 'OmaraPay Checkout', description = 'Pay with crypto', metadata = {} } = req.body || {};
+    const ccKey = process.env.COINBASE_COMMERCE_API_KEY || process.env.COINBASE_API_KEY || null;
+    if (!ccKey) {
+      console.error('createCryptoCharge: missing COINBASE_COMMERCE_API_KEY');
+      return res.status(500).json({ success: false, message: 'Server not configured: missing COINBASE_COMMERCE_API_KEY' });
+    }
+
+    // Masked log for debugging (do NOT log full key in production)
+    const masked = ccKey.length > 8 ? `${ccKey.slice(0,4)}...${ccKey.slice(-4)}` : '***';
+    console.info(`createCryptoCharge: using coinbase key: ${masked}`);
+
+    // Build payload (existing logic)
     const payload = {
-      name,
-      description,
+      name: req.body?.name || 'Charge',
+      description: req.body?.description || '',
+      local_price: { amount: String(req.body?.amount || '0.00'), currency: req.body?.currency || 'USD' },
       pricing_type: 'fixed_price',
-      local_price: { amount: String(Number(amount).toFixed(2)), currency: String(currency).toUpperCase() },
-      metadata,
+      metadata: req.body?.metadata || {},
     };
-    const resp = await CC_API.post('/charges', payload);
-    const data = resp?.data?.data;
-    return res.json({ success: true, id: data?.id, hosted_url: data?.hosted_url || null, status: parseChargeStatus(data) });
+
+    // Send to Coinbase
+    const r = await fetch('https://api.commerce.coinbase.com/charges', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CC-Api-Key': ccKey,
+        'X-CC-Version': '2018-03-22',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const j = await r.json().catch(() => null);
+    console.info('createCryptoCharge: coinbase response status=', r.status);
+    if (!r.ok) {
+      console.error('createCryptoCharge: coinbase error body=', j);
+      return res.status(502).json({ success: false, message: j || `Coinbase error (${r.status})` });
+    }
+
+    // return normal response (adjust per your existing shape)
+    return res.json({ success: true, chargeId: j?.data?.id, hosted_url: j?.data?.hosted_url, raw: j, addresses: j?.data?.addresses || null });
   } catch (err) {
-    return res.status(err?.response?.status || 500).json({ success: false, message: err?.response?.data || err?.message || 'internal' });
+    console.error('createCryptoCharge error', err?.message || err);
+    return res.status(500).json({ success: false, message: err?.message || 'internal' });
   }
 };
 

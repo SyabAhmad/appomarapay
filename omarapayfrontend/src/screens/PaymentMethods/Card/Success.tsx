@@ -7,8 +7,6 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  Platform,
-  ToastAndroid,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -29,8 +27,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CardSuccess'>;
 const FinalSuccess: React.FC<Props> = ({ navigation, route }) => {
   const {
     success = true,
-    chainName = 'Ethereum',
-    tokenSymbol = 'ETH',
+    chainName = 'Card',
+    tokenSymbol = 'USD',
     tokenAmount = '0.00',
     usdAmount = '0.00',
     mobile = '-',
@@ -44,7 +42,6 @@ const FinalSuccess: React.FC<Props> = ({ navigation, route }) => {
   const subtitle = success ? 'Congratulations! Your payment is successful' : 'Something went wrong. Please try again';
 
   const onDone = () => {
-    // return to PaymentMethod (start new flow)
     navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
   };
 
@@ -64,7 +61,7 @@ const FinalSuccess: React.FC<Props> = ({ navigation, route }) => {
 
         <View style={styles.card}>
           <TouchableOpacity style={styles.verifyBtn}>
-            <Text style={styles.verifyText}>Verify transaction on Blockchain</Text>
+            <Text style={styles.verifyText}>View transaction details</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.ghostBtn} onPress={onDone}>
@@ -73,11 +70,11 @@ const FinalSuccess: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.row}>
             <View style={styles.col}>
-              <Text style={styles.label}>Cryptocurrency:</Text>
+              <Text style={styles.label}>Payment method:</Text>
               <Text style={styles.value}>{chainName}</Text>
             </View>
             <View style={styles.col}>
-              <Text style={styles.label}>Token</Text>
+              <Text style={styles.label}>Currency</Text>
               <Text style={styles.valueRight}>{tokenSymbol}</Text>
             </View>
           </View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, InteractionManager, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, InteractionManager, Platform, ScrollView, Image } from 'react-native';
 import { initPaymentSheet, presentPaymentSheet } from '@stripe/stripe-react-native';
 import { API_BASE } from '../../../../config/env';
 
@@ -14,6 +14,7 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
   const description = route?.params?.description ?? 'Payment';
   const metadata = route?.params?.metadata ?? {};
 
+  // behavior state (unchanged)
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,6 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
       }
       setClientSecret(body.clientSecret);
 
-      // Wait for native UI to be attached before initializing PaymentSheet
       InteractionManager.runAfterInteractions(async () => {
         try {
           const { error } = await initPaymentSheet({
@@ -75,7 +75,6 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
   }, [amount, currency, metadata]);
 
   useEffect(() => {
-    // small delay to increase chance native Activity is ready on Android
     const t = setTimeout(() => createPI(), Platform.OS === 'android' ? 150 : 0);
     return () => clearTimeout(t);
   }, [createPI]);
@@ -90,7 +89,6 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
         setLoading(false);
         return;
       }
-      // Success — go to receipt
       navigation.reset({
         index: 0,
         routes: [
@@ -102,7 +100,7 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
               tokenAmount: amount,
               usdAmount: amount,
               mobile: metadata?.phone ?? '-',
-              receivingAddress: clientSecret.split('_secret_')[0], // PI id
+              receivingAddress: clientSecret.split('_secret_')[0],
               paymentIntentId: clientSecret.split('_secret_')[0],
               txId: clientSecret.split('_secret_')[0],
             } as never,
@@ -117,55 +115,128 @@ const GoogleWalletPay: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const payWithCard = async () => {
-    // Navigate to manual card entry (assume you have a CardForm screen or integrate CardField here)
     Alert.alert('Manual card', 'Navigate to card form (implement CardForm screen)');
-    // Example: navigation.navigate('CardForm' as never, { clientSecret, amount, ... });
   };
 
+  // UI redesigned to match other screens (PaymentMethod / Start)
   return (
-    <ScrollView contentContainerStyle={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => (navigation?.canGoBack && navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'WalletStart' as never }] }))}>
-          <Text style={styles.back}>{'< Back'}</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Google Wallet payment</Text>
-        <View style={{ width: 60 }} />
-      </View>
+    <View style={uiStyles.safe}>
+      <ScrollView contentContainerStyle={uiStyles.container}>
+        <View style={uiStyles.topRow}>
+          <Text style={uiStyles.topTitle}>Checkout</Text>
+          <TouchableOpacity style={uiStyles.outlineBtn} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] })}>
+            <Text style={uiStyles.outlineBtnText}>Back</Text>
+          </TouchableOpacity>
+        </View>
 
-      <Text style={styles.sub}>Charge ${Number(amount).toFixed(2)}</Text>
-      <Text style={{ color: '#6b7280', marginTop: 6 }}>
-        {loading ? 'Initializing payment...' : ready ? 'Ready: Google Wallet available' : needInitRetry ? 'Initialization failed — retry' : 'Not initialized (tap Retry)'}
-      </Text>
+        <Image source={require('../../../../../assets/logo.png')} style={uiStyles.logo} resizeMode="contain" />
 
-      <TouchableOpacity style={[styles.primary, !ready || loading ? { opacity: 0.6 } : null]} onPress={payWithGooglePay} disabled={!ready || loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Pay with Google Wallet (Tap/Swipe)</Text>}
-      </TouchableOpacity>
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.panelTitle}>Pay with Google Pay</Text>
+          <Text style={uiStyles.panelSubtitle}>Quick tap-to-pay powered by Stripe</Text>
 
-      {!ready && !loading ? (
-        <TouchableOpacity style={[styles.ghost, { marginTop: 12 }]} onPress={() => createPI()} disabled={loading}>
-          <Text style={styles.ghostText}>{needInitRetry ? 'Retry initialization' : 'Retry initialization'}</Text>
-        </TouchableOpacity>
-      ) : null}
+          <View style={uiStyles.row}>
+            <View style={uiStyles.amountCol}>
+              <Text style={uiStyles.amountLabel}>Amount</Text>
+              <Text style={uiStyles.amountValue}>${Number(amount).toFixed(2)}</Text>
+            </View>
 
-      <TouchableOpacity style={styles.ghost} onPress={payWithCard} disabled={loading}>
-        <Text style={styles.ghostText}>Enter card manually</Text>
-      </TouchableOpacity>
+            <View style={uiStyles.statusCol}>
+              <Text style={uiStyles.small}>Status</Text>
+              <View style={[uiStyles.statusBadge, ready ? uiStyles.statusReady : needInitRetry ? uiStyles.statusWarn : uiStyles.statusIdle]}>
+                <Text style={uiStyles.statusText}>{loading ? 'Initializing' : ready ? 'Ready' : needInitRetry ? 'Init failed' : 'Not ready'}</Text>
+              </View>
+            </View>
+          </View>
 
-      {/* debug UI removed */}
-    </ScrollView>
+          <Text style={uiStyles.description}>{description}</Text>
+
+          <View style={uiStyles.actions}>
+            <TouchableOpacity
+              style={[uiStyles.selectBtn, (!ready || loading) ? uiStyles.disabled : null]}
+              onPress={payWithGooglePay}
+              disabled={!ready || loading}
+            >
+              {loading && ready ? <ActivityIndicator color="#fff" /> : <Text style={uiStyles.selectText}>Pay with Google Pay</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={uiStyles.ghostBtn} onPress={payWithCard} disabled={loading}>
+              <Text style={uiStyles.ghostText}>Pay with card</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+      </ScrollView>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7fafc', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  header: { width: '100%', maxWidth: 560, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  back: { color: '#2563eb', fontWeight: '700' },
-  title: { fontSize: 18, fontWeight: '800' },
-  sub: { color: '#6b7280', marginBottom: 16 },
-  primary: { backgroundColor: '#2563eb', paddingVertical: 14, paddingHorizontal: 22, borderRadius: 12, minWidth: 220, alignItems: 'center', marginTop: 8 },
-  primaryText: { color: '#fff', fontWeight: '800' },
-  ghost: { backgroundColor: '#eef2ff', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, minWidth: 220, alignItems: 'center', marginTop: 10 },
-  ghostText: { fontWeight: '800', color: '#0f172a' },
+const uiStyles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#fff' },
+  container: { paddingTop: 24, paddingBottom: 40, paddingHorizontal: 16, alignItems: 'center' },
+
+  topRow: {
+    width: '100%',
+    maxWidth: 680,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  topTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  outlineBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  outlineBtnText: { color: '#111827', fontWeight: '700' },
+
+  logo: { width: 140, height: 48, marginBottom: 14 },
+
+  panel: {
+    width: '100%',
+    maxWidth: 680,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    alignItems: 'stretch',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  panelTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', marginBottom: 4 },
+  panelSubtitle: { color: '#6b7280', marginBottom: 12 },
+
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  amountCol: { flex: 1 },
+  amountLabel: { color: '#94a3b8', fontSize: 13 },
+  amountValue: { fontSize: 28, fontWeight: '900', marginTop: 4 },
+
+  statusCol: { alignItems: 'flex-end', width: 140 },
+  small: { color: '#94a3b8', fontSize: 13, marginBottom: 6 },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
+  statusReady: { backgroundColor: '#ecfdf5' },
+  statusWarn: { backgroundColor: '#fff7ed' },
+  statusIdle: { backgroundColor: '#eef2ff' },
+  statusText: { color: '#0f172a', fontWeight: '700' },
+
+  description: { color: '#6b7280', marginBottom: 12 },
+
+  actions: { marginTop: 8, alignItems: 'center' },
+  selectBtn: { backgroundColor: '#2563eb', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, minWidth: 220, alignItems: 'center', marginBottom: 10 },
+  selectText: { color: '#fff', fontWeight: '800' },
+  ghostBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, minWidth: 220, alignItems: 'center' },
+  ghostText: { color: '#111827', fontWeight: '800' },
+
+  disabled: { opacity: 0.5 },
 });
 
 export default GoogleWalletPay;

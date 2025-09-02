@@ -1,142 +1,31 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
   ConfirmPayment: {
-    chainId?: string;
-    chainName?: string;
-    tokenId?: string;
-    tokenSymbol?: string;
     selectedAmount?: string;
   } | undefined;
-  PhoneConfirmation: any;
-  Login: undefined;
-  CryptoPay: { amount: string; currency?: string; description?: string } | undefined;
+  CardPhone: any;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'CardConfirm'>;
 
-const mockRates: Record<string, number> = {
-  ETH: 0.00035,
-  BTC: 0.000012,
-  SOL: 0.02,
-  MATIC: 0.6,
-  USDC: 1,
-  BNB: 0.0015,
-  AVAX: 0.005,
-  TRON: 2,
-};
-
-// map known symbols to asset files in /assets
-const getTokenLogo = (symbol?: string, id?: string) => {
-  const s = (symbol ?? id ?? '').toUpperCase();
-  try {
-    if (s.includes('ETH') || s === 'ETH') return require('../../../../assets/Etherum.png');
-    if (s.includes('BTC') || s === 'BTC') return require('../../../../assets/Bitcoin.png');
-    if (s.includes('SOL') || s === 'SOL') return require('../../../../assets/logo.png'); // solana logo missing, use app logo
-    if (s.includes('MATIC') || s === 'MATIC') return require('../../../../assets/Matic.png');
-    if (s.includes('USDC') || s === 'USDC') return require('../../../../assets/USD Coin.png');
-    if (s.includes('BNB') || s === 'BNB') return require('../../../../assets/Bnb.png');
-    if (s.includes('AVAX') || s === 'AVAX') return require('../../../../assets/logo.png');
-    if (s.includes('TRON') || s === 'TRON') return require('../../../../assets/Tron.png');
-  } catch {
-    // fallthrough if asset filename mismatch
-  }
-  return require('../../../../assets/logo.png');
-};
-
 const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
-  const { chainId, chainName, tokenId, tokenSymbol, selectedAmount } = route.params ?? {};
-  const usd = Number(selectedAmount ?? '0') || 0;
-  const tokenKey = (tokenSymbol ?? '').toUpperCase() || (tokenId ?? '').toUpperCase();
-
-  // Detect if this is a card payment
-  const isCardPayment = useMemo(() =>
-    (tokenSymbol?.toUpperCase() === 'USD') ||
-    (chainId === 'card') ||
-    (chainName?.toLowerCase().includes('visa') ||
-     chainName?.toLowerCase().includes('master') ||
-     chainName?.toLowerCase().includes('card')),
-  [tokenSymbol, chainId, chainName]);
-
-  // Detect if this is a GCash (or similar e-wallet) payment — treat as fiat, no conversion
-  const isGCash = useMemo(() => {
-    const n = (chainName || '').toLowerCase();
-    const s = (tokenSymbol || '').toLowerCase();
-    return chainId === 'gcash' || n.includes('gcash') || n.includes('google pay') || s.includes('gcash') || s.includes('gpay');
-  }, [chainId, chainName, tokenSymbol]);
-
-  const isGoogleWallet = useMemo(() => {
-    const n = (chainName || '').toLowerCase();
-    const s = (tokenSymbol || '').toLowerCase();
-    return chainId === 'googlewallet' || n.includes('google wallet') || s.includes('google wallet');
-  }, [chainId, chainName, tokenSymbol]);
-
-  const isFiatFlow = isCardPayment || isGCash || isGoogleWallet;
-
-  const [locked, setLocked] = useState(!isFiatFlow); // Fiat (card/gcash) start unlocked
-  const [rate, setRate] = useState<number | null>(null);
-  const [tokenAmount, setTokenAmount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [delta, setDelta] = useState<number | null>(null);
-
-  const tokenLogo = useMemo(() => getTokenLogo(tokenSymbol, tokenId), [tokenSymbol, tokenId]);
-
-  const fetchRate = (showLoading = true) => {
-    // Skip rate calculations for fiat (card/gcash)
-    if (isFiatFlow) {
-      setLocked(false);
-      setTokenAmount(usd);
-      setLastUpdated(Date.now());
-      return;
-    }
-
-    setLocked(true);
-    if (showLoading) setLoading(true);
-
-    // simulate network call and small volatility
-    setTimeout(() => {
-      const base = mockRates[tokenKey] ?? (Math.random() * 0.01 + 0.0001);
-      const volatility = (Math.random() - 0.5) * base * 0.02;
-      const next = Math.max(0.0000001, base + volatility);
-      const prev = rate ?? next;
-      setRate(next);
-      setTokenAmount(Number((usd * next).toFixed(8)));
-      setDelta(prev ? Number((((next - prev) / prev) * 100).toFixed(2)) : 0);
-      setLastUpdated(Date.now());
-      setLocked(false);
-      setLoading(false);
-    }, 1000); // 1s lock to mimic realtime quote locking
-  };
-
-  useEffect(() => {
-    fetchRate(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const onRefresh = () => fetchRate(true);
+  const selectedAmount = route.params?.selectedAmount ?? '0.00';
+  const usd = Number(selectedAmount) || 0;
 
   const onConfirm = () => {
-    // Always go through phone confirmation + OTP before creating checkout (step-by-step)
     navigation.navigate('CardPhone' as never, {
-      chainId,
-      chainName,
-      tokenId,
-      tokenSymbol,
       selectedAmount: String(usd.toFixed(2)),
     } as never);
   };
-
-  const formattedLastUpdated = lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : null;
 
   return (
     <View style={styles.safe}>
@@ -157,94 +46,39 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.amount}>{usd.toFixed(2)}</Text>
           </View>
 
-          {!isFiatFlow && <View style={styles.separator} />}
+          <View style={styles.separator} />
 
-          {/* For crypto payments, show conversion rate */}
-          {!isFiatFlow ? (
-            <View style={styles.conversionRow}>
-              <View style={styles.tokenInfo}>
-                <Image source={tokenLogo} style={styles.tokenLogo} resizeMode="contain" />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={styles.tokenSymbol}>{(tokenSymbol ?? tokenId ?? '').toUpperCase() || 'TOKEN'}</Text>
-                  <Text style={styles.tokenSub}>{chainName ?? 'Network'}</Text>
-                </View>
-              </View>
-
-              <View style={styles.rateBox}>
-                {locked ? (
-                  <View style={styles.lockedWrap}>
-                    <ActivityIndicator size="small" color="#2563eb" />
-                    <Text style={styles.lockedText}>Rate locked</Text>
-                  </View>
-                ) : (
-                  <>
-                    <Text style={styles.tokenAmount}>{tokenAmount ?? '—'}</Text>
-                    <Text style={styles.rateLine}>
-                      {rate ? `${rate}` : '—'} {tokenSymbol ? tokenSymbol.toUpperCase() : ''}
-                    </Text>
-                    {delta !== null ? (
-                      <Text style={[styles.delta, delta >= 0 ? styles.deltaUp : styles.deltaDown]}>
-                        {delta >= 0 ? `+${delta}%` : `${delta}%`}
-                      </Text>
-                    ) : null}
-                  </>
-                )}
+          <View style={styles.conversionRow}>
+            <View style={styles.tokenInfo}>
+              <Image
+                source={require('../../../../assets/visa.png')}
+                style={styles.tokenLogo}
+                resizeMode="contain"
+              />
+              <View style={{ marginLeft: 12 }}>
+                <Text style={styles.tokenSymbol}>Card Payment</Text>
+                <Text style={styles.tokenSub}>USD Direct Payment</Text>
               </View>
             </View>
-          ) : (
-            /* For fiat (card/gcash), show simplified payment method info */
-            <View style={styles.cardPaymentInfo}>
-              <View style={styles.separator} />
-              <View style={styles.conversionRow}>
-                <View style={styles.tokenInfo}>
-                  <Image
-                    source={
-                      isCardPayment
-                        ? require('../../../../assets/visa.png')
-                        : require('../../../../assets/logo.png') // replace with gcash/google-wallet icons if you add them
-                    }
-                    style={styles.tokenLogo}
-                    resizeMode="contain"
-                  />
-                  <View style={{ marginLeft: 12 }}>
-                    <Text style={styles.tokenSymbol}>
-                      {chainName ?? (isCardPayment ? 'Card Payment' : isGoogleWallet ? 'Google Wallet' : 'GCash')}
-                    </Text>
-                    <Text style={styles.tokenSub}>USD Direct Payment</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.rateBox}>
-                  <Text style={styles.tokenAmount}>{usd.toFixed(2)} USD</Text>
-                  <Text style={styles.rateLine}>No conversion</Text>
-                </View>
-              </View>
+
+            <View style={styles.rateBox}>
+              <Text style={styles.tokenAmount}>{usd.toFixed(2)} USD</Text>
+              <Text style={styles.rateLine}>No conversion</Text>
             </View>
-          )}
+          </View>
 
           <View style={styles.metaRow}>
-            {!isFiatFlow ? (
-              <>
-                <Text style={styles.metaText}>
-                  {formattedLastUpdated ? `Last updated ${formattedLastUpdated}` : 'Fetching rate…'}
-                </Text>
-                <TouchableOpacity style={styles.refresh} onPress={onRefresh} activeOpacity={0.85}>
-                  <Text style={styles.refreshText}>{loading ? 'Refreshing…' : 'Refresh'}</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <Text style={styles.metaText}>
-                {isCardPayment ? 'Card payment - USD direct' : isGoogleWallet ? 'Google Wallet - USD direct' : 'GCash payment - USD direct'}
-              </Text>
-            )}
+            <Text style={styles.metaText}>Card payment - USD direct</Text>
+            <TouchableOpacity style={styles.refresh} onPress={() => { /* noop for card */ }}>
+              <Text style={styles.refreshText}>Refresh</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
 
       <View style={styles.bottom}>
         <TouchableOpacity
-          style={[styles.confirmBtn, locked ? { opacity: 0.6 } : null]}
-          disabled={locked}
+          style={styles.confirmBtn}
           onPress={onConfirm}
           activeOpacity={0.9}
         >
@@ -286,7 +120,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 14,
     padding: 18,
-    // shadow
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -312,14 +145,9 @@ const styles = StyleSheet.create({
     minWidth: 140,
     alignItems: 'flex-end',
   },
-  lockedWrap: { flexDirection: 'row', alignItems: 'center' },
-  lockedText: { marginLeft: 8, color: '#6b7280' },
 
   tokenAmount: { fontWeight: '800', fontSize: 18, color: '#0f172a' },
   rateLine: { color: '#6b7280', marginTop: 6, fontSize: 12 },
-  delta: { marginTop: 6, fontSize: 12, fontWeight: '700' },
-  deltaUp: { color: '#10b981' },
-  deltaDown: { color: '#ef4444' },
 
   metaRow: { marginTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   metaText: { color: '#94a3b8', fontSize: 13 },
@@ -347,11 +175,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmText: { color: '#fff', fontWeight: '800' },
-
-  // Add this style
-  cardPaymentInfo: {
-    marginTop: -16, // negative margin to compensate for the separator margin
-  },
 });
 
 export default ConfirmPayment;
