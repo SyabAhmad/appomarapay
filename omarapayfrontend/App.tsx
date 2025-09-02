@@ -58,6 +58,8 @@ import PinAuth from './src/screens/PinAuth';
 import Home from './src/screens/Home';
 import Logout from './src/screens/Logout';
 import PaymentMethod from './src/screens/PaymentMethod';
+import WalletStart from './src/screens/WalletStart';
+import GoogleWalletStart from './src/screens/PaymentMethods/Wallets/GoogleWallet/Start';
 
 type RootStackParamList = {
   AuthGate: undefined;
@@ -65,6 +67,8 @@ type RootStackParamList = {
   Home: undefined;
   Logout: undefined;
   PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash'; selectedToken?: string; chainId?: string } | undefined;
+  WalletStart: undefined;
+  GoogleWalletStart: undefined;
   BlockchainMethod: undefined;
   CardMethod: undefined;
   GCashMethod: undefined;
@@ -115,6 +119,7 @@ function App(): React.JSX.Element {
               <Stack.Screen name="Home" component={Home} />
               <Stack.Screen name="Logout" component={Logout} />
               <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
+              <Stack.Screen name="WalletStart" component={WalletStart} />
               {/* Card flow */}
               <Stack.Screen name="CardStart" component={CardStart} />
               <Stack.Screen name="CardAmountEntry" component={CardAmountEntry} />
@@ -135,6 +140,7 @@ function App(): React.JSX.Element {
               <Stack.Screen name="GCashSuccess" component={GCashSuccess} />
               <Stack.Screen name="GCashFailure" component={GCashFailure} />
               {/* Wallets → Google Wallet */}
+              <Stack.Screen name="GoogleWalletStart" component={GoogleWalletStart} />
               <Stack.Screen name="GoogleWalletAmountEntry" component={GoogleWalletAmountEntry} />
               <Stack.Screen name="GoogleWalletConfirm" component={GoogleWalletConfirm} />
               <Stack.Screen name="GoogleWalletPhone" component={GoogleWalletPhone} />

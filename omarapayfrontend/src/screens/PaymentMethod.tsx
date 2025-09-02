@@ -4,10 +4,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
   PaymentMethod: { selectedMethod?: 'Card' | 'Blockchain' | 'GCash' } | undefined;
-  Login: undefined;
-  BlockchainMethod: undefined;
-  CardMethod: undefined;
-  GCashMethod: undefined;
+  CardStart: undefined;
+  CryptoStart: undefined;
+  WalletStart: undefined;
+  GCashStart: undefined;
+  GoogleWalletStart: undefined;
+  PinAuth: undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentMethod'>;
 
@@ -67,7 +69,7 @@ const PaymentMethod: React.FC<Props> = ({ navigation, route }) => {
             emoji="📱"
             title="Wallets"
             subtitle="GCash / Google Wallet"
-            onPress={() => navigation.navigate('GCashStart' as never)}
+            onPress={() => navigation.navigate('WalletStart' as never)}
           />
         </View>
       </ScrollView>
