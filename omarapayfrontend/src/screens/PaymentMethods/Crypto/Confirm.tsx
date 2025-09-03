@@ -7,6 +7,7 @@ type RootStackParamList = {
   CryptoOtp: {
     chainId?: string; chainName?: string; tokenId?: string; tokenSymbol?: string; selectedAmount?: string; phone?: string; otp?: string;
   } | undefined;
+  CryptoPay: { amount: string; currency?: string; description?: string } | undefined;
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'CryptoConfirm'>;
 
@@ -68,13 +69,11 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const onRefresh = () => fetchRate(true);
 
   const onConfirm = () => {
-    // Route to the shared PhoneConfirmation screen so user can enter/confirm phone (OTP flow happens there)
-    navigation.navigate('PhoneConfirmation' as never, {
-      chainId,
-      chainName,
-      tokenId,
-      tokenSymbol,
-      selectedAmount: String(usd.toFixed(2)),
+    // Directly proceed to Crypto pay (no phone / OTP)
+    navigation.navigate('CryptoPay' as never, {
+      amount: String(usd.toFixed(2)),
+      currency: 'USD',
+      description: `${tokenSymbol ?? tokenId ?? 'Token'} payment`,
     } as never);
   };
 
@@ -148,7 +147,7 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
           onPress={onConfirm}
           activeOpacity={0.9}
         >
-          <Text style={styles.confirmText}>Confirm & send OTP</Text>
+          <Text style={styles.confirmText}>Confirm & Pay</Text>
         </TouchableOpacity>
       </View>
     </View>

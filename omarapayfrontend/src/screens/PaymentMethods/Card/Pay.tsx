@@ -56,6 +56,13 @@ const CardPayment: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const handleProcess = async (securityCode: string) => {
+    // call your SDK/backend to finalize charge. Example placeholder:
+    // await api.post('/payments/card/confirm', { amount, metadata, securityCode })
+    // For now simulate:
+    await new Promise((r) => setTimeout(r, 900));
+  };
+
   // UI-only: render the CardReader UI and wire lightweight callbacks to existing logic
   return (
     <View style={{ flex: 1 }}>
@@ -63,30 +70,22 @@ const CardPayment: React.FC<Props> = ({ navigation, route }) => {
         amount={String(Number(route?.params?.amount ?? '0').toFixed(2))}
         deviceName={undefined as any}
         errorMessage={undefined as any}
-        onStart={() => { try { (createPI as any)?.(); } catch {} }}
-        onRetry={() => { try { (createPI as any)?.(); } catch {} }}
-        onCancel={safeBack}
-        onBack={safeBack}
-        onDone={() => {
+        onStart={() => { /* start pairing / SDK connect */ }}
+        onRetry={() => { /* retry */ }}
+        onCancel={() => safeBack()}
+        onBack={() => safeBack()}
+        onProcess={async (code) => {
           try {
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: 'DetailedReceipt' as never,
-                  params: {
-                    chainName: 'Card',
-                    tokenSymbol: 'USD',
-                    tokenAmount: route?.params?.amount ?? '0.00',
-                    usdAmount: route?.params?.amount ?? '0.00',
-                    mobile: route?.params?.metadata?.phone ?? '-',
-                    receivingAddress: '-',
-                    txId: null,
-                  } as never,
-                },
-              ],
-            });
-          } catch {}
+            await handleProcess(code);
+            // navigate to success/receipt
+            navigation.reset({ index: 0, routes: [{ name: 'CardSuccess' as never }] });
+          } catch {
+            // show error
+            navigation.navigate('CardFailure' as never, { errorMessage: 'Payment failed' } as never);
+          }
+        }}
+        onDone={() => {
+          navigation.reset({ index: 0, routes: [{ name: 'CardReceipt' as never }] });
         }}
       />
     </View>

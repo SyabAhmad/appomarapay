@@ -33,14 +33,14 @@ export default function WalletStart({ navigation }) {
             <Text style={styles.walletName}>GCash</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.walletCard}
             onPress={() => navigation.navigate('GoogleWalletAmountEntry', { chainId: 'googlewallet', chainName: 'Google Wallet' })}
             activeOpacity={0.9}
           >
             <Text style={styles.walletEmoji}>🅖</Text>
             <Text style={styles.walletName}>Google Pay</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </ScrollView>
     </View>

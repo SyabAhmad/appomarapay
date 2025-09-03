@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking, Platform, ScrollView, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { API_BASE } from '../config/env';
+import { API_BASE } from '../../../config/env';
 type RootStackParamList = {
   CryptoPay: { amount: string; currency?: string; description?: string } | undefined;
   FinalSuccess: undefined;

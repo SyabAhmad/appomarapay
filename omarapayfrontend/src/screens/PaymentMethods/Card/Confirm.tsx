@@ -22,8 +22,11 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const usd = Number(selectedAmount) || 0;
 
   const onConfirm = () => {
-    navigation.navigate('CardPhone' as never, {
-      selectedAmount: String(usd.toFixed(2)),
+    navigation.navigate('CardPay' as never, {
+      amount: String(usd.toFixed(2)),
+      currency: 'usd',
+      description: `Payment (Card)`,
+      metadata: {}, // add metadata as needed (no phone)
     } as never);
   };
 
@@ -82,7 +85,7 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
           onPress={onConfirm}
           activeOpacity={0.9}
         >
-          <Text style={styles.confirmText}>Confirm & send OTP</Text>
+          <Text style={styles.confirmText}>Confirm Amount</Text>
         </TouchableOpacity>
       </View>
     </View>

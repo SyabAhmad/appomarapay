@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Alert, ActivityIndicator } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { API_BASE } from '../../../../config/env'; // adjust path if your env wrapper is elsewhere
 
 type RootStackParamList = {
   GCashConfirm: { chainId?: string; chainName?: string; selectedAmount?: string } | undefined;
@@ -11,13 +12,34 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GCashConfirm'>;
 
 const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const { chainId = 'gcash', chainName = 'GCash', selectedAmount = '0.00' } = route.params ?? {};
+  const [loading, setLoading] = useState(false);
 
-  const onConfirm = () => {
-    navigation.navigate('GCashPhone' as never, {
-      chainId,
-      chainName,
-      selectedAmount,
-    } as never);
+  const phpAmount = Number(selectedAmount || '0');
+
+  const onConfirm = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/gcash`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: phpAmount, currency: 'PHP' }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        console.error('create gcash checkout failed', res.status, body);
+        Alert.alert('Create checkout failed', body?.message || JSON.stringify(body) || 'Failed to create GCash checkout');
+        setLoading(false);
+        return;
+      }
+      // navigate to QR/receipt screen (ensure route name matches your navigator)
+      navigation.navigate('GCashReceipt' as never, { hosted_url: body.hosted_url, phpAmount: String(phpAmount) } as never);
+    } catch (err) {
+      console.error('gcash create error', err);
+      Alert.alert('Network error', 'Unable to create GCash checkout. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,8 +70,13 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       <View style={styles.bottom}>
-        <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm} activeOpacity={0.9}>
-          <Text style={styles.confirmText}>Confirm & send OTP</Text>
+        <TouchableOpacity
+          style={[styles.confirmBtn, loading ? { opacity: 0.6 } : null]}
+          onPress={onConfirm}
+          activeOpacity={0.9}
+          disabled={loading}
+        >
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmText}>Confirm Amount</Text>}
         </TouchableOpacity>
       </View>
     </View>

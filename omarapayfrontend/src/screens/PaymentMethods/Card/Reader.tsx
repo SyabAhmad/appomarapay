@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, TextInput } from 'react-native';
 
 type ReaderStatus = 'idle' | 'pairing' | 'waiting' | 'processing' | 'success' | 'error';
 
@@ -7,23 +7,36 @@ type Props = {
   amount?: string;
   deviceName?: string | null;
   errorMessage?: string | null;
-  onStart?: () => void;      // call your hardware SDK start/pair
-  onCancel?: () => void;     // cancel/prompt
-  onRetry?: () => void;      // retry flow
-  onDone?: () => void;       // finished (success) callback
-  onBack?: () => void;       // back action (optional)
+  onStart?: () => void;
+  onCancel?: () => void;
+  onRetry?: () => void;
+  onDone?: () => void;
+  onProcess?: (securityCode: string) => Promise<void>; // called when merchant submits CVV/pin
+  onBack?: () => void;
 };
 
-const CardReaderUI: React.FC<Props> = ({ amount = '0.00', deviceName = null, errorMessage = null, onStart, onCancel, onRetry, onDone, onBack }) => {
+const CardReaderUI: React.FC<Props> = ({ amount = '0.00', deviceName = null, errorMessage = null, onStart, onCancel, onRetry, onDone, onProcess, onBack }) => {
   const [status, setStatus] = useState<ReaderStatus>('idle');
+  const [security, setSecurity] = useState<string>('');
+  const [processingLocal, setProcessingLocal] = useState(false);
 
   const start = () => {
     setStatus('pairing');
+    try { onStart?.(); } finally { setTimeout(() => setStatus('waiting'), 800); }
+  };
+
+  const processPayment = async () => {
+    if (!security || security.trim().length === 0) return;
+    setProcessingLocal(true);
+    setStatus('processing');
     try {
-      onStart?.();
+      await onProcess?.(security);
+      setStatus('success');
+      onDone?.();
+    } catch (e) {
+      setStatus('error');
     } finally {
-      // caller/SDK should update real status via callbacks — here we keep UI-only transitions for demo
-      setTimeout(() => setStatus('waiting'), 800);
+      setProcessingLocal(false);
     }
   };
 
@@ -117,10 +130,26 @@ const CardReaderUI: React.FC<Props> = ({ amount = '0.00', deviceName = null, err
           )}
 
           {status === 'waiting' && (
-            <View style={styles.rowActions}>
-              <ActivityIndicator />
-              <TouchableOpacity style={styles.ghost} onPress={cancel}><Text style={styles.ghostText}>Cancel</Text></TouchableOpacity>
-            </View>
+            <>
+              <View style={styles.rowActions}>
+                <ActivityIndicator />
+                <TouchableOpacity style={styles.ghost} onPress={cancel}><Text style={styles.ghostText}>Cancel</Text></TouchableOpacity>
+              </View>
+              <View style={{ width: '100%', marginTop: 12 }}>
+                <Text style={{ color: '#6b7280', marginBottom: 6, textAlign: 'center' }}>Enter card security code (CVV) for privacy</Text>
+                <TextInput
+                  value={security}
+                  onChangeText={setSecurity}
+                  placeholder="CVV / Security code"
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  style={styles.phoneInput}
+                />
+                <TouchableOpacity style={[styles.primary, { marginTop: 10 }]} onPress={processPayment} disabled={processingLocal}>
+                  <Text style={styles.primaryText}>{processingLocal ? 'Processing…' : 'Process payment'}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
 
           {status === 'processing' && (
@@ -188,6 +217,16 @@ const styles = StyleSheet.create({
   rowActions: { flexDirection: 'row', alignItems: 'center' },
 
   note: { color: '#94a3b8', fontSize: 12, marginTop: 12, textAlign: 'center' },
+
+  phoneInput: {
+    height: 48,
+    borderColor: '#cbd5e1',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
 });
 
 export default CardReaderUI;
