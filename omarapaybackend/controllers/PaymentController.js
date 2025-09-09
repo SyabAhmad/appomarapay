@@ -8,16 +8,16 @@ dotenv.config();
 // Helpers
 const mask = (s) => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
 
-// Stripe (cards)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2022-11-15' });
-
-// ----------------- Crypto (Coingate) -----------------
+// --- Coingate LIVE base ---
 const COINGATE_KEY = (process.env.COINGATE_API_KEY || '').trim();
-console.info('startup: using COINGATE_API_KEY=', mask(COINGATE_KEY));
+const COINGATE_BASE = 'https://api.coingate.com/v2';
+console.info('startup: Coingate base=', COINGATE_BASE, 'key=', mask(COINGATE_KEY));
 
 const CG_API = axios.create({
-  baseURL: 'https://api.coingate.com/v2',
+  baseURL: COINGATE_BASE,
+  timeout: 15000,
   headers: {
+    Accept: 'application/json',
     'Content-Type': 'application/json',
     ...(COINGATE_KEY ? { Authorization: `Token ${COINGATE_KEY}` } : {}),
   },
@@ -86,27 +86,28 @@ export const stripeWebhook = async (req, res) => {
 export const createCryptoCharge = async (req, res) => {
   try {
     if (!COINGATE_KEY) {
-      console.error('createCryptoCharge: missing COINGATE_API_KEY');
       return res.status(500).json({ success: false, message: 'Server not configured: missing COINGATE_API_KEY' });
     }
+    const {
+      amount = '1.00',
+      currency = 'USD',
+      name = 'Charge',
+      description = '',
+      receive_currency = 'USDT', // allow override from client; default to USDT
+      metadata = {},
+    } = req.body || {};
 
-    const { amount = '0.00', currency = 'USD', name = 'Charge', description = '', metadata = {} } = req.body || {};
     const payload = {
       price_amount: String(amount),
-      price_currency: String(currency).toUpperCase(),
-      receive_currency: 'BTC', // change if needed
+      price_currency: String(currency).toUpperCase(), // e.g., USD
+      receive_currency: String(receive_currency).toUpperCase(), // e.g., USDT/BTC/ETH
       title: name,
       description,
-      // callback_url / success_url / cancel_url optional
+      // success_url / cancel_url / callback_url can be added here
       // order_id: metadata?.orderId,
     };
 
     const r = await CG_API.post('/orders', payload);
-    if (r.status !== 201) {
-      console.error('Coingate create order failed', r.status, r.data);
-      return res.status(r.status).json({ success: false, message: r.data });
-    }
-
     return res.json({
       success: true,
       chargeId: r.data?.id,
@@ -117,10 +118,13 @@ export const createCryptoCharge = async (req, res) => {
   } catch (err) {
     if (err?.response) {
       console.error('Coingate create error', err.response.status, err.response.data);
-      return res.status(502).json({ success: false, message: err.response.data || `Coingate error (${err.response.status})` });
+      // forward actual Coingate status instead of 502 so we can see the real cause
+      return res
+        .status(err.response.status)
+        .json({ success: false, message: err.response.data || `Coingate error (${err.response.status})` });
     }
-    console.error('createCryptoCharge error', err?.message || err);
-    return res.status(500).json({ success: false, message: err?.message || 'internal' });
+    console.error('Coingate network error', err?.message || err);
+    return res.status(502).json({ success: false, message: err?.message || 'Network error calling Coingate' });
   }
 };
 

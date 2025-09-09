@@ -143,12 +143,21 @@ const CryptoPay: React.FC<Props> = ({ navigation, route }) => {
   return (
     <ScrollView contentContainerStyle={styles.safe}>
       <View style={styles.card}>
-        <Text style={styles.label}>Pay with Crypto</Text>
+        <Text style={styles.label}>Pay with Crypto (Coingate)</Text>
         <Text style={styles.amount}>{currency} {amount}</Text>
 
-        <TouchableOpacity style={styles.payBtn} onPress={onPay} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.payText}>Create checkout</Text>}
-        </TouchableOpacity>
+        {creating && (
+          <View style={{ marginTop: 12, alignItems: 'center' }}>
+            <ActivityIndicator />
+            <Text style={styles.note}>Creating checkout…</Text>
+          </View>
+        )}
+
+        {!creating && !hostedUrl && (
+          <TouchableOpacity style={styles.payBtn} onPress={createOrder} disabled={creating}>
+            <Text style={styles.payText}>Create checkout</Text>
+          </TouchableOpacity>
+        )}
 
         {hostedUrl ? (
           <View style={{ marginTop: 18, alignItems: 'center' }}>
@@ -157,10 +166,11 @@ const CryptoPay: React.FC<Props> = ({ navigation, route }) => {
               source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(hostedUrl)}` }}
               style={{ width: 180, height: 180, borderRadius: 8 }}
             />
-            <TouchableOpacity style={[styles.payBtn, { marginTop: 12 }]} onPress={() => Linking.openURL(hostedUrl)}>
+            <TouchableOpacity style={[styles.payBtn, { marginTop: 12 }]} onPress={openHosted}>
               <Text style={styles.payText}>Open checkout</Text>
             </TouchableOpacity>
-            {chargeId ? <Text style={styles.note}>Charge ID: {chargeId}</Text> : null}
+            {orderId ? <Text style={styles.note}>Order ID: {orderId}</Text> : null}
+            <Text style={styles.note}>Waiting for confirmation…</Text>
           </View>
         ) : null}
       </View>
