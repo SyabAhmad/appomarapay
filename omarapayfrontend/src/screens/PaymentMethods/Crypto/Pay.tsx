@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking, Platform, ScrollView, Image } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Alert, Platform, ScrollView, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { API_BASE } from '../../../config/env';
+
 type RootStackParamList = {
   CryptoPay: { amount: string; currency?: string; description?: string } | undefined;
   FinalSuccess: undefined;
@@ -10,133 +10,135 @@ type RootStackParamList = {
 };
 type Props = NativeStackScreenProps<RootStackParamList, 'CryptoPay'>;
 
-// const API_BASE = Platform.OS === 'android' ? 'http://192.168.0.109:5000' : 'http://localhost:5000';
-// For a physical device replace API_BASE with http://<PC_IP>:5000
+// Prefer a centralized config if you have one; fallback to production API
+const API_BASE =
+  (typeof process !== 'undefined' && (process as any)?.env?.EXPO_PUBLIC_API_BASE) ||
+  (typeof process !== 'undefined' && (process as any)?.env?.API_BASE) ||
+  'https://appomarapay-production.up.railway.app';
 
 const POLL_INTERVAL_MS = 5000;
 const MAX_ATTEMPTS = 120; // ~10 minutes
 
 const CryptoPay: React.FC<Props> = ({ navigation, route }) => {
-  const { amount = '1.00', currency = 'USD', description = '' } = route.params ?? {};
-  const [loading, setLoading] = useState(false);
-  const [chargeId, setChargeId] = useState<string | null>(null);
+  const amount = useMemo(() => String(Number(route?.params?.amount ?? '0').toFixed(2)), [route?.params?.amount]);
+  const currency = useMemo(() => (route?.params?.currency ?? 'USD').toUpperCase(), [route?.params?.currency]);
+  const description = route?.params?.description ?? 'Crypto payment (Coingate)';
+
+  const [creating, setCreating] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [hostedUrl, setHostedUrl] = useState<string | null>(null);
-  const attemptsRef = useRef(0);
+
+  const attemptsRef = useRef<number>(0);
   const intervalRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+  const clearTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current as unknown as number);
+      intervalRef.current = null;
+    }
   }, []);
 
-  const startPolling = (id: string) => {
+  useEffect(() => {
+    return () => clearTimer();
+  }, [clearTimer]);
+
+  const startPolling = useCallback((id: string) => {
+    clearTimer();
     attemptsRef.current = 0;
     intervalRef.current = setInterval(async () => {
-      attemptsRef.current += 1;
       try {
-        const res = await fetch(`${API_BASE}/api/payments/crypto/${id}`);
+        attemptsRef.current += 1;
+        const res = await fetch(`${API_BASE}/api/payments/crypto/${encodeURIComponent(id)}/verify`);
         const body = await res.json().catch(() => null);
-        if (!res.ok) {
-          console.warn('poll error', res.status, body);
-        } else {
-          const charge = body?.charge;
-          // get latest timeline status where available
-          const lastStatus = charge?.timeline?.slice(-1)[0]?.status?.toUpperCase() ?? (body?.localTx?.status ?? '').toUpperCase();
-
-          // treat typical final statuses
-          if (lastStatus === 'COMPLETED' || lastStatus === 'RESOLVED' || lastStatus === 'CONFIRMED') {
-            clearInterval(intervalRef.current!);
-            intervalRef.current = null;
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: 'CryptoSuccess' as never,
-                  params: {
-                    success: true,
-                    chainName: 'Crypto',
-                    tokenSymbol: currency,
-                    tokenAmount: amount,
-                    usdAmount: amount,
-                    mobile: '-',
-                    receivingAddress: charge?.addresses ?? charge?.hosted_url ?? '',
-                  } as never,
-                },
-              ],
-            });
-            return;
+        if (!res.ok || !body?.success) {
+          console.warn('verify crypto failed', res.status, body);
+          if (attemptsRef.current % 6 === 0) {
+            // surface intermittent errors gently
+            setError(`Verify failed (${res.status}). Retrying...`);
           }
-
-          if (lastStatus === 'EXPIRED' || lastStatus === 'CANCELED' || lastStatus === 'UNRESOLVED' || lastStatus === 'FAILED') {
-            clearInterval(intervalRef.current!);
-            intervalRef.current = null;
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: 'CryptoFailure' as never,
-                  params: {
-                    chainName: 'Crypto',
-                    tokenSymbol: currency,
-                    tokenAmount: amount,
-                    usdAmount: amount,
-                    mobile: '-',
-                    receivingAddress: charge?.addresses ?? '',
-                    errorMessage: `Payment status: ${lastStatus}`,
-                  } as never,
-                },
-              ],
-            });
-            return;
+          if (attemptsRef.current >= MAX_ATTEMPTS) {
+            clearTimer();
+            navigation.replace('FinalFailure' as never);
           }
+          return;
         }
-      } catch (err) {
-        console.error('poll fetch error', err);
-      }
 
-      if (attemptsRef.current >= MAX_ATTEMPTS) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = null;
-        Alert.alert('Timeout', 'Payment not completed within expected time. Please try again or contact support.');
+        const status = String(body?.status || '').toLowerCase();
+        if (status === 'succeeded' || status === 'success') {
+          clearTimer();
+          navigation.replace('FinalSuccess' as never);
+          return;
+        }
+        if (status === 'failed' || status === 'expired' || status === 'canceled') {
+          clearTimer();
+          navigation.replace('FinalFailure' as never);
+          return;
+        }
+
+        // still pending — keep polling
+      } catch (err) {
+        console.warn('verify error', err);
+        if (attemptsRef.current >= MAX_ATTEMPTS) {
+          clearTimer();
+          navigation.replace('FinalFailure' as never);
+        }
       }
     }, POLL_INTERVAL_MS) as unknown as number;
-  };
+  }, [API_BASE, clearTimer, navigation]);
 
-  const onPay = async () => {
-    setLoading(true);
+  const createOrder = useCallback(async () => {
+    setCreating(true);
+    setError(null);
     try {
       const res = await fetch(`${API_BASE}/api/payments/crypto`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, currency, name: 'Order', description }),
+        body: JSON.stringify({ amount, currency, name: 'Crypto charge', description }),
       });
       const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        Alert.alert('Error', body?.message ?? `Status ${res.status}`);
-        setLoading(false);
+      if (!res.ok || !body?.success) {
+        console.error('Coingate create order failed', res.status, body);
+        setError(body?.message?.error || body?.message || 'Create order failed (Coingate)');
+        setCreating(false);
         return;
       }
-      const hosted = body.hosted_url;
-      const id = body.chargeId;
-      setChargeId(id);
-      setHostedUrl(hosted ?? null);
-
-      // open hosted_url in external browser
-      if (hosted) {
-        const ok = await Linking.canOpenURL(hosted);
-        if (ok) Linking.openURL(hosted);
+      const id = body?.chargeId || body?.orderId || body?.id;
+      const url = body?.hosted_url || body?.payment_url;
+      if (!id || !url) {
+        setError('Invalid response from server (missing id/hosted_url)');
+        setCreating(false);
+        return;
       }
-
-      // start polling for charge status
+      setOrderId(id);
+      setHostedUrl(url);
+      setCreating(false);
       startPolling(id);
-    } catch (err: any) {
-      console.error('create crypto error', err);
-      Alert.alert('Error', err?.message ?? 'Network error');
-    } finally {
-      setLoading(false);
+    } catch (e: any) {
+      console.error('create error', e?.message || e);
+      setError('Network error creating Coingate order');
+      setCreating(false);
     }
-  };
+  }, [API_BASE, amount, currency, description, startPolling]);
+
+  useEffect(() => {
+    createOrder();
+  }, [createOrder]);
+
+  const openHosted = useCallback(async () => {
+    if (!hostedUrl) return;
+    const ok = await Linking.canOpenURL(hostedUrl);
+    if (!ok) {
+      Alert.alert('Open failed', 'Cannot open payment URL on this device.');
+      return;
+    }
+    Linking.openURL(hostedUrl);
+  }, [hostedUrl]);
+
+  const cancel = useCallback(() => {
+    clearTimer();
+    navigation.reset({ index: 0, routes: [{ name: 'PaymentMethod' as never }] });
+  }, [clearTimer, navigation]);
 
   return (
     <ScrollView contentContainerStyle={styles.safe}>

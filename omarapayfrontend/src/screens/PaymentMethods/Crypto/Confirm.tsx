@@ -69,11 +69,10 @@ const ConfirmPayment: React.FC<Props> = ({ navigation, route }) => {
   const onRefresh = () => fetchRate(true);
 
   const onConfirm = () => {
-    // Directly proceed to Crypto pay (no phone / OTP)
     navigation.navigate('CryptoPay' as never, {
       amount: String(usd.toFixed(2)),
       currency: 'USD',
-      description: `${tokenSymbol ?? tokenId ?? 'Token'} payment`,
+      description: `${tokenSymbol ?? tokenId ?? 'Token'} via Coingate`,
     } as never);
   };
 

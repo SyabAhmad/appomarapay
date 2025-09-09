@@ -7,6 +7,27 @@ dotenv.config();
 // Stripe (cards)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2022-11-15' });
 
+// Coingate
+const COINGATE_KEY = (process.env.COINGATE_API_KEY || '').trim();
+const mask = s => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
+console.info('startup: using COINGATE_API_KEY=', mask(COINGATE_KEY));
+
+const CG_API = axios.create({
+  baseURL: 'https://api.coingate.com/v2',
+  headers: {
+    'Content-Type': 'application/json',
+    ...(COINGATE_KEY ? { 'Authorization': `Token ${COINGATE_KEY}` } : {}),
+  },
+});
+
+const mapCoingateStatus = (s) => {
+  const v = String(s || '').toLowerCase();
+  if (['paid', 'confirmed', 'finished', 'complete', 'completed', 'success'].includes(v)) return 'succeeded';
+  if (['pending', 'new', 'confirming', 'processing'].includes(v)) return 'pending';
+  if (['expired', 'canceled', 'cancelled', 'invalid', 'refunded', 'failed', 'rejected'].includes(v)) return 'failed';
+  return v || 'pending';
+};
+
 // --- CHANGED: use only COINBASE_API_KEY (no || fallback) ---
 const COINBASE_KEY = (process.env.COINBASE_API_KEY || '').trim();
 const mask = s => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
@@ -78,6 +99,84 @@ export const stripeWebhook = async (req, res) => {
     return res.status(200).send('ok');
   } catch (e) {
     return res.status(400).send('invalid signature');
+  }
+};
+
+// ----------------- Crypto (Coingate) -----------------
+export const createCryptoCharge = async (req, res) => {
+  try {
+    if (!COINGATE_KEY) {
+      console.error('createCryptoCharge: missing COINGATE_API_KEY');
+      return res.status(500).json({ success: false, message: 'Server not configured: missing COINGATE_API_KEY' });
+    }
+
+    const { amount = '0.00', currency = 'USD', name = 'Charge', description = '', metadata = {} } = req.body || {};
+
+    const payload = {
+      price_amount: String(amount),
+      price_currency: String(currency).toUpperCase(), // e.g., USD
+      receive_currency: 'BTC', // change if you prefer USDT/ETH/BTC etc.
+      title: name,
+      description,
+      // optional callbacks:
+      // callback_url: process.env.COINGATE_CALLBACK_URL,
+      // cancel_url: process.env.COINGATE_CANCEL_URL,
+      // success_url: process.env.COINGATE_SUCCESS_URL,
+      // order_id: metadata?.orderId,
+    };
+
+    const r = await CG_API.post('/orders', payload);
+    if (r.status !== 201) {
+      console.error('Coingate create order failed', r.status, r.data);
+      return res.status(r.status).json({ success: false, message: r.data });
+    }
+
+    return res.json({
+      success: true,
+      chargeId: r.data?.id,
+      hosted_url: r.data?.payment_url,
+      status: mapCoingateStatus(r.data?.status),
+      raw: r.data,
+    });
+  } catch (err) {
+    if (err?.response) {
+      console.error('Coingate create error', err.response.status, err.response.data);
+      return res.status(502).json({ success: false, message: err.response.data || `Coingate error (${err.response.status})` });
+    }
+    console.error('createCryptoCharge error', err?.message || err);
+    return res.status(500).json({ success: false, message: err?.message || 'internal' });
+  }
+};
+
+export const getCryptoCharge = async (req, res) => {
+  try {
+    if (!COINGATE_KEY) return res.status(501).json({ success: false, message: 'COINGATE_API_KEY not configured' });
+    const { id } = req.params;
+    const r = await CG_API.get(`/orders/${encodeURIComponent(id)}`);
+    const d = r.data || {};
+    return res.json({
+      success: true,
+      id: d?.id,
+      hosted_url: d?.payment_url || null,
+      status: mapCoingateStatus(d?.status),
+      raw: d,
+    });
+  } catch (err) {
+    return res.status(err?.response?.status || 500).json({ success: false, message: err?.response?.data || err?.message || 'internal' });
+  }
+};
+
+export const verifyCryptoCharge = async (req, res) => getCryptoCharge(req, res);
+export const verifyCryptoOnChain = async (req, res) => getCryptoCharge(req, res);
+
+// Optional webhook placeholder
+export const coingateWebhook = (req, res) => {
+  try {
+    // Coingate sends callbacks without signature by default (can use Basic auth). Add validation if you configure it.
+    console.info('Coingate webhook received');
+    return res.status(200).send('ok');
+  } catch {
+    return res.status(200).send('ok');
   }
 };
 
@@ -170,7 +269,7 @@ export const createGcashPayment = async (req, res) => {
       const hosted_url = d?.actions?.mobile_web_checkout_url || d?.actions?.desktop_web_checkout_url || d?.checkout_url || null;
       return res.json({ success: true, id: d?.id || reference_id, hosted_url, status: (d?.status || 'PENDING').toLowerCase() });
     }
-    // fallback: no hosted url when not configured
+    // fallback: mock hosted url
     const id = `gc_${crypto.randomBytes(6).toString('hex')}`;
     const hosted_url =
       process.env.GCASH_HOSTED_URL_BASE
@@ -199,27 +298,25 @@ export const getGcashStatus = async (req, res) => {
         null;
       return res.json({ success: true, status, hosted_url });
     }
-    // Fallback: mock memory (not persisted)
-    const idPrefix = 'gc_';
-    if (!id.startsWith(idPrefix)) return res.status(404).json({ success: false, message: 'not found' });
-    const amount = Number(req.query.amount) || 0;
-    const currency = String(req.query.currency || 'USD').toUpperCase();
+    // Fallback mock
     const status = req.query.success === '1' ? 'succeeded' : 'pending';
     const hosted_url =
       process.env.GCASH_HOSTED_URL_BASE
-        ? `${process.env.GCASH_HOSTED_URL_BASE}?ref=${id}&amount=${encodeURIComponent(amount)}&currency=${currency}`
-        : `https://pay.gcash.com/app/pay?ref=${id}&amount=${encodeURIComponent(amount)}&currency=${currency}`;
-    return res.json({ success: true, id, hosted_url, status, amount, currency });
+        ? `${process.env.GCASH_HOSTED_URL_BASE}?ref=${id}&amount=${encodeURIComponent(req.query.amount || 0)}&currency=${String(req.query.currency || 'USD').toUpperCase()}`
+        : null;
+    return res.json({ success: true, id, hosted_url, status });
   } catch (err) {
     return res.status(500).json({ success: false, message: err?.message || 'internal' });
   }
 };
 
+// ----------------- Google Wallet (mock) -----------------
+const googleWalletMemory = new Map();
+
 export const createGoogleWalletPayment = async (req, res) => {
   try {
     const { amount = '0.00', currency = 'USD', description = '', metadata = {} } = req.body || {};
     const id = `gw_${crypto.randomBytes(6).toString('hex')}`;
-    // placeholder hosted URL (replace with provider checkout/deeplink when available)
     const hosted_url = `https://pay.google.com/gp/p/ui/pay?ref=${id}&amount=${encodeURIComponent(amount)}&currency=${currency}`;
     const record = { status: 'pending', amount, currency, description, metadata, hosted_url, createdAt: Date.now() };
     googleWalletMemory.set(id, record);
@@ -236,7 +333,6 @@ export const getGoogleWalletStatus = async (req, res) => {
     if (!id) return res.status(400).json({ success: false, message: 'missing id' });
     const rec = googleWalletMemory.get(id);
     if (!rec) return res.status(404).json({ success: false, message: 'not found' });
-    // test-only: force success with ?success=1
     if (req.query.success === '1' && rec.status !== 'succeeded') {
       rec.status = 'succeeded';
       googleWalletMemory.set(id, rec);
