@@ -2,21 +2,24 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import Stripe from 'stripe';
 import crypto from 'crypto';
+
 dotenv.config();
+
+// Helpers
+const mask = (s) => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
 
 // Stripe (cards)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2022-11-15' });
 
-// Coingate
+// ----------------- Crypto (Coingate) -----------------
 const COINGATE_KEY = (process.env.COINGATE_API_KEY || '').trim();
-const mask = s => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
 console.info('startup: using COINGATE_API_KEY=', mask(COINGATE_KEY));
 
 const CG_API = axios.create({
   baseURL: 'https://api.coingate.com/v2',
   headers: {
     'Content-Type': 'application/json',
-    ...(COINGATE_KEY ? { 'Authorization': `Token ${COINGATE_KEY}` } : {}),
+    ...(COINGATE_KEY ? { Authorization: `Token ${COINGATE_KEY}` } : {}),
   },
 });
 
@@ -26,28 +29,6 @@ const mapCoingateStatus = (s) => {
   if (['pending', 'new', 'confirming', 'processing'].includes(v)) return 'pending';
   if (['expired', 'canceled', 'cancelled', 'invalid', 'refunded', 'failed', 'rejected'].includes(v)) return 'failed';
   return v || 'pending';
-};
-
-// --- CHANGED: use only COINBASE_API_KEY (no || fallback) ---
-const COINBASE_KEY = (process.env.COINBASE_API_KEY || '').trim();
-const mask = s => (s && s.length > 8 ? `${s.slice(0,4)}...${s.slice(-4)}` : (s ? '***' : '(none)'));
-
-console.info('startup: using COINBASE_API_KEY=', mask(COINBASE_KEY));
-
-// axios instance with explicit API key header
-const CC_API = axios.create({
-  baseURL: 'https://api.commerce.coinbase.com',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-CC-Version': '2018-03-22',
-    ...(COINBASE_KEY ? { 'X-CC-Api-Key': COINBASE_KEY } : {}),
-  },
-});
-const parseChargeStatus = (data) => {
-  try {
-    const t = data?.timeline || [];
-    return String(t[t.length - 1]?.status || data?.status || 'PENDING').toLowerCase();
-  } catch { return 'pending'; }
 };
 
 // GCash (Xendit) with mock fallback
@@ -94,10 +75,9 @@ export const stripeWebhook = async (req, res) => {
     if (secret) {
       event = Stripe.webhooks.constructEvent(req.body, sig, secret);
     }
-    // Optionally log
     try { console.log('Stripe event:', event?.type, event?.data?.object?.id); } catch {}
     return res.status(200).send('ok');
-  } catch (e) {
+  } catch {
     return res.status(400).send('invalid signature');
   }
 };
@@ -111,17 +91,13 @@ export const createCryptoCharge = async (req, res) => {
     }
 
     const { amount = '0.00', currency = 'USD', name = 'Charge', description = '', metadata = {} } = req.body || {};
-
     const payload = {
       price_amount: String(amount),
-      price_currency: String(currency).toUpperCase(), // e.g., USD
-      receive_currency: 'BTC', // change if you prefer USDT/ETH/BTC etc.
+      price_currency: String(currency).toUpperCase(),
+      receive_currency: 'BTC', // change if needed
       title: name,
       description,
-      // optional callbacks:
-      // callback_url: process.env.COINGATE_CALLBACK_URL,
-      // cancel_url: process.env.COINGATE_CANCEL_URL,
-      // success_url: process.env.COINGATE_SUCCESS_URL,
+      // callback_url / success_url / cancel_url optional
       // order_id: metadata?.orderId,
     };
 
@@ -172,70 +148,7 @@ export const verifyCryptoOnChain = async (req, res) => getCryptoCharge(req, res)
 // Optional webhook placeholder
 export const coingateWebhook = (req, res) => {
   try {
-    // Coingate sends callbacks without signature by default (can use Basic auth). Add validation if you configure it.
     console.info('Coingate webhook received');
-    return res.status(200).send('ok');
-  } catch {
-    return res.status(200).send('ok');
-  }
-};
-
-// ----------------- Crypto (Coinbase Commerce) -----------------
-export const createCryptoCharge = async (req, res) => {
-  try {
-    if (!COINBASE_KEY) {
-      console.error('createCryptoCharge: missing COINBASE_API_KEY');
-      return res.status(500).json({ success: false, message: 'Server not configured: missing COINBASE_API_KEY' });
-    }
-
-    const payload = {
-      name: req.body?.name || 'Charge',
-      description: req.body?.description || '',
-      local_price: { amount: String(req.body?.amount || '0.00'), currency: req.body?.currency || 'USD' },
-      pricing_type: 'fixed_price',
-      metadata: req.body?.metadata || {},
-    };
-
-    console.info('createCryptoCharge: posting to coinbase with key=', mask(COINBASE_KEY));
-    const r = await CC_API.post('/charges', payload);
-    console.info('createCryptoCharge: coinbase status=', r.status, 'id=', r.data?.data?.id);
-
-    return res.json({ success: true, chargeId: r.data?.data?.id, hosted_url: r.data?.data?.hosted_url, raw: r.data });
-  } catch (err) {
-    if (err?.response) {
-      console.error('createCryptoCharge: coinbase response error', err.response.status, err.response.data);
-      return res.status(502).json({ success: false, message: err.response.data || `Coinbase error (${err.response.status})` });
-    }
-    console.error('createCryptoCharge error', err?.message || err);
-    return res.status(500).json({ success: false, message: err?.message || 'internal' });
-  }
-};
-
-export const getCryptoCharge = async (req, res) => {
-  try {
-    if (!process.env.COINBASE_API_KEY) return res.status(501).json({ success: false, message: 'COINBASE_API_KEY not configured' });
-    const { id } = req.params;
-    const resp = await CC_API.get(`/charges/${encodeURIComponent(id)}`);
-    const data = resp?.data?.data;
-    return res.json({ success: true, id: data?.id, hosted_url: data?.hosted_url || null, status: parseChargeStatus(data) });
-  } catch (err) {
-    return res.status(err?.response?.status || 500).json({ success: false, message: err?.response?.data || err?.message || 'internal' });
-  }
-};
-
-export const verifyCryptoCharge = async (req, res) => getCryptoCharge(req, res);
-export const verifyCryptoOnChain = async (req, res) => getCryptoCharge(req, res);
-
-export const coinbaseWebhook = (req, res) => {
-  try {
-    const secret = process.env.COINBASE_WEBHOOK_SECRET || '';
-    const signature = req.headers['x-cc-webhook-signature'];
-    const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
-    if (secret) {
-      const digest = crypto.createHmac('sha256', secret).update(raw).digest('hex');
-      if (signature !== digest) return res.status(400).send('invalid signature');
-    }
-    try { console.log('Coinbase webhook received'); } catch {}
     return res.status(200).send('ok');
   } catch {
     return res.status(200).send('ok');
