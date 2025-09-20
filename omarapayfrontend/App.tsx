@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { StatusBar, useColorScheme, View, Text } from 'react-native';
+import { StatusBar, useColorScheme, View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -26,8 +26,7 @@ import GCashMethod from './src/screens/GCashMethod';
 import DetailedReceipt from './src/screens/DetailedReceipt';
 import FinalSuccess from './src/screens/FinalSuccess';
 import FinalFailure from './src/screens/FinalFailure';
-import Login from './src/screens/auth/Login';
-import Signup from './src/screens/auth/Signup';
+
 import Home from './src/screens/Home';
 import Logout from './src/screens/Logout';
 import CardPayment from './src/screens/CardPayment';
@@ -54,8 +53,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
   render() {
     if (this.state.error) {
       return (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: '#fff' }}>
-          <Text style={{ fontWeight: '800', marginBottom: 8 }}>App error</Text>
+        <View style={errorStyles.container}>
+          <Text style={errorStyles.title}>App error</Text>
           <Text>{this.state.error.message}</Text>
         </View>
       );
@@ -101,5 +100,19 @@ function App(): React.JSX.Element {
     </SafeAreaProvider>
   );
 }
+
+const errorStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+});
 
 export default App;

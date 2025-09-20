@@ -30,7 +30,6 @@ const FinalFailure: React.FC<Props> = ({ navigation, route }) => {
     tokenAmount = '0.00',
     usdAmount = '0.00',
     mobile = '-',
-    receivingAddress = '-',
     errorMessage = 'Payment could not be completed',
   } = route.params ?? {};
 

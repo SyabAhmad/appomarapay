@@ -63,7 +63,7 @@ const TotalAmount: React.FC<AmountProps> = ({ items, addPhoneScreen }) => {
     } catch (err) {
       console.log(err);
     }
-  }, [activeTransaction]);
+  }, [activeTransaction, addPhoneScreen, navigation, dispatch]);
 
   const handlePrintReceipt = async () => {
     try {

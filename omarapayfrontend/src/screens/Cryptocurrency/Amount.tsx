@@ -99,13 +99,13 @@ const CryptocurrencyAmount: React.FC<CryptocurrencyAmountScreenProp> = ({ naviga
     }
   };
 
-  const setTitle = (isMobileDevice: () => boolean, isContinuePressed: boolean, errorMessage: string) => {
+  const setTitle = (isMobile: () => boolean, continuePressed: boolean, errorMessage: string) => {
     switch (true) {
       case !!errorMessage:
         return errorMessage;
-      case isMobileDevice() && !isContinuePressed:
+      case isMobile() && !continuePressed:
         return 'How much is the amount the customer will pay in Crypto?';
-      case isMobileDevice() && isContinuePressed:
+      case isMobile() && continuePressed:
         return 'Confirm amount in crypto';
       default:
         return 'Enter the Amount of the bill';

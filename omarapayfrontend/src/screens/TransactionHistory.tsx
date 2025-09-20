@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import settings from '../../settings';
 import Header from '../components/Header';
-import LineDivider from '../components/LineDivider.';
 import { TransactionHistoryScreenProp } from '../typings/types';
 
 type Tx = { id: string; method: string; amount: number; currency: string; date: string };

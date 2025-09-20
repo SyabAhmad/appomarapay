@@ -43,10 +43,6 @@ const ReceiptSuccess: React.FC<Props> = ({ navigation, route }) => {
   const txId = useMemo(() => `TX-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, []);
   const timestamp = useMemo(() => new Date().toLocaleString(), []);
 
-  const onScanQr = () => {
-    navigation.navigate('QrCodeScreen' as never, { address: receivingAddress, chainName } as never);
-  };
-
   const onCopyAddress = () => {
     Clipboard.setString(receivingAddress);
     if (Platform.OS === 'android') ToastAndroid.show('Address copied', ToastAndroid.SHORT);
