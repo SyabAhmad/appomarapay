@@ -1,14 +1,11 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   Image,
-  Platform,
-  ToastAndroid,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -26,20 +23,6 @@ const supportedCardDefinitions = [
   { id: 'discover', name: 'Discover', test: (n: string) => /^(6011|65|64[4-9])/.test(n), asset: require('../../assets/discover.png') },
   { id: 'unionpay', name: 'UnionPay', test: (n: string) => /^(62|88)/.test(n), asset: require('../../assets/unionpay.png') },
 ];
-
-const formatCardNumber = (raw: string) => {
-  const digits = raw.replace(/\D/g, '').slice(0, 19);
-  // group into 4-4-4-4-3 (simple)
-  return digits.replace(/(.{4})/g, '$1 ').trim();
-};
-
-const detectCard = (raw: string) => {
-  const n = raw.replace(/\D/g, '');
-  for (const def of supportedCardDefinitions) {
-    if (def.test(n)) return def;
-  }
-  return null;
-};
 
 const CardDetails: React.FC<Props> = ({ navigation, route }) => {
   const networkName = route.params?.networkName ?? 'Card';

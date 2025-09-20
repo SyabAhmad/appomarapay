@@ -6,7 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import settings from '../../settings';
 import { addCommasAndCurrency, formatTimeToAMPM } from '../helper';
 import { useAppSelector } from '../store/app/hook';
-import { Company, RootStackParamList } from '../typings/types';
+import { RootStackParamList } from '../typings/types';
 import LogoutHeader from './LogoutHeader';
 
 const CompanyLogout = () => {

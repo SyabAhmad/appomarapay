@@ -25,7 +25,7 @@ export const isMobileDevice = () => {
   return getWidth() < 500;
 };
 
-export const arrayChunck = (array: any, chunkSize: any) => {
+export const arrayChunk = (array: any[], chunkSize: number) => {
   const data = [];
 
   for (let i = 0; i < array.length; i += chunkSize) {

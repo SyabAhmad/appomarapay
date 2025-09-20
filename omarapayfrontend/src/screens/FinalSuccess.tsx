@@ -5,10 +5,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
   ScrollView,
-  Platform,
-  ToastAndroid,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -34,7 +31,6 @@ const FinalSuccess: React.FC<Props> = ({ navigation, route }) => {
     tokenAmount = '0.00',
     usdAmount = '0.00',
     mobile = '-',
-    receivingAddress = '-',
   } = route.params ?? {};
 
   const txId = useMemo(() => `TX-${Math.random().toString(36).slice(2, 9).toUpperCase()}`, []);
